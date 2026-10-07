@@ -9,15 +9,16 @@ public class Sucursal {
     @GeneratedValue (strategy=GenerationType.IDENTITY)
     private int id;
 
-    @Column (nullable=false)
-    private int comercioId;
+    @ManyToOne
+    @JoinColumn(name = "comercio_id")
+    private Comercio comercio;
 
     @Column (nullable=false)
     private String direccion;
 
-    public Sucursal(int id, int comercioId, String direccion) {
+    public Sucursal(int id, Comercio comercio, String direccion) {
         this.id = id;
-        this.comercioId = comercioId;
+        this.comercio = comercio;
         this.direccion = direccion;
     }
 
@@ -25,16 +26,16 @@ public class Sucursal {
         return id;
     }
 
-    public int getComercioId() {
-        return comercioId;
+    public Comercio getComercio() {
+        return comercio;
     }
 
     public String getDireccion() {
         return direccion;
     }
 
-    public void setComercioId(int comercioId) {
-        this.comercioId = comercioId;
+    public void setComercio(Comercio comercio) {
+        this.comercio = comercio;
     }
 
     public void setDireccion(String direccion) {

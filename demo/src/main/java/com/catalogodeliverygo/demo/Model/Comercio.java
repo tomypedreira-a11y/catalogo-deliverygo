@@ -1,5 +1,7 @@
 package com.catalogodeliverygo.demo.Model;
 
+import java.util.List;
+
 import jakarta.persistence.*;
 
 @Entity 
@@ -17,9 +19,15 @@ public class Comercio {
 
     @Column(nullable=false)
     private String direccion;
-    
+
     @Column(nullable=false)
     private boolean activo;
+
+    @OneToMany(mappedBy = "comercio", fetch = FetchType.LAZY)
+    private List<Sucursal> sucursales;
+
+    @OneToMany (mappedBy = "comercio", fetch = FetchType.LAZY)
+    private List<Producto> productos;
 
     public Comercio(int id, String cuit, String razonSocial, String direccion, boolean activo) {
         this.id = id;

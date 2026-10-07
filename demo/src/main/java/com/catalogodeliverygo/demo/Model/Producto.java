@@ -20,14 +20,14 @@ public class Producto {
     private double precio;
 
     @Column (nullable=false)
-    private int comercioId;
+    private Comercio comercio;
 
-    public Producto(int id, String nombre, String descripcion, double precio, int comercioId) {
+    public Producto(int id, String nombre, String descripcion, double precio, Comercio comercio) {
         this.id = id;
         this.nombre = nombre;
         this.descripcion = descripcion;
         this.precio = precio;
-        this.comercioId = comercioId;
+        this.comercio = comercio;
     }
 
     public int getId() {
@@ -46,8 +46,8 @@ public class Producto {
         return precio;
     }
 
-    public int getComercioId() {
-        return comercioId;
+    public Comercio getComercio() {
+        return comercio;
     }
 
     public void setNombre(String nombre) {
@@ -62,7 +62,7 @@ public class Producto {
         this.precio = precio;
     }
 
-    public void setComercioId(int comercioId) {
-        this.comercioId = comercioId;
+    public void setComercio(Comercio comercio) {
+        this.comercio = comercio;
     }
 }
