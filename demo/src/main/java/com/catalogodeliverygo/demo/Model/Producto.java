@@ -1,10 +1,25 @@
 package com.catalogodeliverygo.demo.Model;
 
+import jakarta.persistence.*;
+
+@Entity 
+@Table(name = "productos")
 public class Producto {
+
+    @Id 
+    @GeneratedValue (strategy=GenerationType.IDENTITY)
     private int id;
+
+    @Column (nullable=false)
     private String nombre;
+
+    @Column (nullable=false)
     private String descripcion;
+
+    @Column (nullable=false)
     private double precio;
+
+    @Column (nullable=false)
     private int comercioId;
 
     public Producto(int id, String nombre, String descripcion, double precio, int comercioId) {
