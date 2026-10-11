@@ -19,8 +19,12 @@ public class Producto {
     @Column (nullable=false)
     private double precio;
 
-    @Column (nullable=false)
+    @ManyToOne
+    @JoinColumn(name = "comercio_id", nullable = false)
     private Comercio comercio;
+
+    public Producto() {
+    }
 
     public Producto(int id, String nombre, String descripcion, double precio, Comercio comercio) {
         this.id = id;

@@ -29,6 +29,9 @@ public class Comercio {
     @OneToMany (mappedBy = "comercio", fetch = FetchType.LAZY)
     private List<Producto> productos;
 
+    public Comercio() {
+    }
+
     public Comercio(int id, String cuit, String razonSocial, String direccion, boolean activo) {
         this.id = id;
         this.cuit = cuit;

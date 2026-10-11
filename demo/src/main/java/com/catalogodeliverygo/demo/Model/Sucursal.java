@@ -16,6 +16,9 @@ public class Sucursal {
     @Column (nullable=false)
     private String direccion;
 
+    public Sucursal() {
+    }
+
     public Sucursal(int id, Comercio comercio, String direccion) {
         this.id = id;
         this.comercio = comercio;
