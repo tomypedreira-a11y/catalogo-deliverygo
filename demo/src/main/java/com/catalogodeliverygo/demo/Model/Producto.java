@@ -1,14 +1,18 @@
 package com.catalogodeliverygo.demo.Model;
 
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
+
 import jakarta.persistence.*;
 
-@Entity 
+@Entity
 @Table(name = "productos")
 public class Producto {
 
-    @Id 
+    @Id
     @GeneratedValue (strategy=GenerationType.IDENTITY)
-    private int id;
+    private Long id;
 
     @Column (nullable=false)
     private String nombre;
@@ -16,25 +20,38 @@ public class Producto {
     @Column (nullable=false)
     private String descripcion;
 
+    @Column (nullable=false, precision=12, scale=2)
+    private BigDecimal precio;
+
     @Column (nullable=false)
-    private double precio;
+    private boolean disponible;
 
     @ManyToOne
     @JoinColumn(name = "comercio_id", nullable = false)
     private Comercio comercio;
 
+    // DM-03 / REL-03: un producto puede tener varias categorías y una categoría varios productos
+    @ManyToMany
+    @JoinTable(
+        name = "producto_categoria",
+        joinColumns = @JoinColumn(name = "producto_id"),
+        inverseJoinColumns = @JoinColumn(name = "categoria_id")
+    )
+    private List<Categoria> categorias = new ArrayList<>();
+
     public Producto() {
     }
 
-    public Producto(int id, String nombre, String descripcion, double precio, Comercio comercio) {
-        this.id = id;
+    public Producto(String nombre, String descripcion, BigDecimal precio, boolean disponible, Comercio comercio, List<Categoria> categorias) {
         this.nombre = nombre;
         this.descripcion = descripcion;
         this.precio = precio;
+        this.disponible = disponible;
         this.comercio = comercio;
+        this.categorias = categorias;
     }
 
-    public int getId() {
+    public Long getId() {
         return id;
     }
 
@@ -46,12 +63,20 @@ public class Producto {
         return descripcion;
     }
 
-    public double getPrecio() {
+    public BigDecimal getPrecio() {
         return precio;
+    }
+
+    public boolean isDisponible() {
+        return disponible;
     }
 
     public Comercio getComercio() {
         return comercio;
+    }
+
+    public List<Categoria> getCategorias() {
+        return categorias;
     }
 
     public void setNombre(String nombre) {
@@ -62,11 +87,19 @@ public class Producto {
         this.descripcion = descripcion;
     }
 
-    public void setPrecio(double precio) {
+    public void setPrecio(BigDecimal precio) {
         this.precio = precio;
+    }
+
+    public void setDisponible(boolean disponible) {
+        this.disponible = disponible;
     }
 
     public void setComercio(Comercio comercio) {
         this.comercio = comercio;
+    }
+
+    public void setCategorias(List<Categoria> categorias) {
+        this.categorias = categorias;
     }
 }

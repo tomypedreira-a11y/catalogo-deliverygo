@@ -7,20 +7,19 @@ public class Categoria {
 
     @Id
     @GeneratedValue(strategy=GenerationType.IDENTITY)
-    private int id;
-    
+    private Long id;
+
     @Column(nullable=false)
     private String nombre;
 
     public Categoria() {
     }
 
-    public Categoria(int id, String nombre) {
-        this.id = id;
+    public Categoria(String nombre) {
         this.nombre = nombre;
     }
 
-    public int getId() {
+    public Long getId() {
         return id;
     }
 

@@ -1,19 +1,22 @@
 package com.catalogodeliverygo.demo.DTOs;
 
-public class ComercioDTO {
-    private int id;
+public class ComercioResponseDTO {
+    private Long id;
     private String cuit;
     private String razonSocial;
-    private String direccion;
+    private String estado;
 
-    public ComercioDTO(int id, String cuit, String razonSocial, String direccion) {
+    public ComercioResponseDTO(Long id, String cuit, String razonSocial, String estado) {
         this.id = id;
         this.cuit = cuit;
         this.razonSocial = razonSocial;
-        this.direccion = direccion;
+        this.estado = estado;
     }
 
-    public int getId() {
+    public ComercioResponseDTO() {
+    }
+
+    public Long getId() {
         return id;
     }
 
@@ -25,11 +28,11 @@ public class ComercioDTO {
         return razonSocial;
     }
 
-    public String getDireccion() {
-        return direccion;
+    public String getEstado() {
+        return estado;
     }
 
-    public void setId(int id) {
+    public void setId(Long id) {
         this.id = id;
     }
 
@@ -41,7 +44,7 @@ public class ComercioDTO {
         this.razonSocial = razonSocial;
     }
 
-    public void setDireccion(String direccion) {
-        this.direccion = direccion;
+    public void setEstado(String estado) {
+        this.estado = estado;
     }
 }

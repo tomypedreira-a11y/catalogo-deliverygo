@@ -1,17 +1,20 @@
 package com.catalogodeliverygo.demo.DTOs;
 
 public class SucursalDTO {
-    private int id;
+    private Long id;
     private String direccion;
-    private String cuilComercio;
+    private Long comercioId;
 
-    public SucursalDTO(int id, String direccion, String cuilComercio) {
+    public SucursalDTO(Long id, String direccion, Long comercioId) {
         this.id = id;
         this.direccion = direccion;
-        this.cuilComercio = cuilComercio;
+        this.comercioId = comercioId;
     }
 
-    public int getId() {
+    public SucursalDTO() {
+    }
+
+    public Long getId() {
         return id;
     }
 
@@ -19,19 +22,19 @@ public class SucursalDTO {
         return direccion;
     }
 
-    public String getCuilComercio() {
-        return cuilComercio;
+    public Long getComercioId() {
+        return comercioId;
     }
 
-    public void setId(int id) {
+    public void setId(Long id) {
         this.id = id;
     }
-    
+
     public void setDireccion(String direccion) {
         this.direccion = direccion;
     }
 
-    public void setCuilComercio(String cuilComercio) {
-        this.cuilComercio = cuilComercio;
+    public void setComercioId(Long comercioId) {
+        this.comercioId = comercioId;
     }
 }

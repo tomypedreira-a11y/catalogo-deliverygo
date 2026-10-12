@@ -1,15 +1,21 @@
 package com.catalogodeliverygo.demo.Model;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import jakarta.persistence.*;
 
-@Entity 
+@Entity
 @Table(name = "comercios")
 public class Comercio {
+
+    // DM-04: estado es un String controlado, no un boolean ni un enum
+    public static final String ESTADO_ACTIVO = "ACTIVO";
+    public static final String ESTADO_INACTIVO = "INACTIVO";
+
     @Id
     @GeneratedValue(strategy=GenerationType.IDENTITY)
-    private int id;
+    private Long id;
 
     @Column(nullable=false, unique=true)
     private String cuit;
@@ -21,27 +27,30 @@ public class Comercio {
     private String direccion;
 
     @Column(nullable=false)
-    private boolean activo;
+    private String rubro;
+
+    @Column(nullable=false)
+    private String estado;
 
     @OneToMany(mappedBy = "comercio", fetch = FetchType.LAZY)
-    private List<Sucursal> sucursales;
+    private List<Sucursal> sucursales = new ArrayList<>();
 
     @OneToMany (mappedBy = "comercio", fetch = FetchType.LAZY)
-    private List<Producto> productos;
+    private List<Producto> productos = new ArrayList<>();
 
     public Comercio() {
     }
 
-    public Comercio(int id, String cuit, String razonSocial, String direccion, boolean activo) {
-        this.id = id;
+    public Comercio(String cuit, String razonSocial, String direccion, String rubro, String estado) {
         this.cuit = cuit;
         this.razonSocial = razonSocial;
         this.direccion = direccion;
-        this.activo = activo;
+        this.rubro = rubro;
+        this.estado = estado;
     }
 
 
-    public int getId() {
+    public Long getId() {
         return id;
     }
 
@@ -52,15 +61,27 @@ public class Comercio {
     public String getRazonSocial() {
         return razonSocial;
     }
-    
+
     public String getDireccion() {
         return direccion;
     }
 
-    public boolean isActivo() {
-        return activo;
+    public String getRubro() {
+        return rubro;
     }
-    
+
+    public String getEstado() {
+        return estado;
+    }
+
+    public List<Sucursal> getSucursales() {
+        return sucursales;
+    }
+
+    public List<Producto> getProductos() {
+        return productos;
+    }
+
     public void setCuit(String cuit) {
         this.cuit = cuit;
     }
@@ -73,7 +94,11 @@ public class Comercio {
         this.direccion = direccion;
     }
 
-    public void setActivo(boolean activo) {
-        this.activo = activo;
+    public void setRubro(String rubro) {
+        this.rubro = rubro;
+    }
+
+    public void setEstado(String estado) {
+        this.estado = estado;
     }
 }

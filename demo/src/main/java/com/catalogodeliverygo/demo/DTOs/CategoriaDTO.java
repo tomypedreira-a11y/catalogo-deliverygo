@@ -2,15 +2,18 @@ package com.catalogodeliverygo.demo.DTOs;
 
 public class CategoriaDTO {
 
-    private int id;
+    private Long id;
     private String nombre;
 
-    public CategoriaDTO(int id, String nombre) {
+    public CategoriaDTO(Long id, String nombre) {
         this.id = id;
         this.nombre = nombre;
     }
 
-    public int getId() {
+    public CategoriaDTO() {
+    }
+
+    public Long getId() {
         return id;
     }
 
@@ -22,8 +25,8 @@ public class CategoriaDTO {
         this.nombre = nombre;
     }
 
-    public void setId(int id) {
+    public void setId(Long id) {
         this.id = id;
     }
-    
+
 }

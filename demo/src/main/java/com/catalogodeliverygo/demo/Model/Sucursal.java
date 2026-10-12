@@ -2,15 +2,15 @@ package com.catalogodeliverygo.demo.Model;
 
 import jakarta.persistence.*;
 
-@Entity 
+@Entity
 @Table (name = "sucursales")
 public class Sucursal {
-    @Id 
+    @Id
     @GeneratedValue (strategy=GenerationType.IDENTITY)
-    private int id;
+    private Long id;
 
     @ManyToOne
-    @JoinColumn(name = "comercio_id")
+    @JoinColumn(name = "comercio_id", nullable = false)
     private Comercio comercio;
 
     @Column (nullable=false)
@@ -19,13 +19,12 @@ public class Sucursal {
     public Sucursal() {
     }
 
-    public Sucursal(int id, Comercio comercio, String direccion) {
-        this.id = id;
+    public Sucursal(Comercio comercio, String direccion) {
         this.comercio = comercio;
         this.direccion = direccion;
     }
 
-    public int getId() {
+    public Long getId() {
         return id;
     }
 
