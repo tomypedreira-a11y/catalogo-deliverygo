@@ -54,4 +54,32 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.BAD_REQUEST)
                 .body(error);
     }
+
+    @ExceptionHandler (AccesoNoAutorizadoException.class)
+    public ResponseEntity<ErrorResponseDTO> manejarAccesoNoAutorizado(AccesoNoAutorizadoException ex, HttpServletRequest request){
+        ErrorResponseDTO error = new ErrorResponseDTO(LocalDateTime.now(),
+                                                      HttpStatus.FORBIDDEN.value(),
+                                                      "FORBIDDEN",
+                                                      ex.getMessage(),
+                                                      request.getRequestURI()
+                                                );
+
+        return ResponseEntity
+                .status(HttpStatus.FORBIDDEN)
+                .body(error);
+    }
+
+    @ExceptionHandler (ComercioInactivoException.class)
+    public ResponseEntity<ErrorResponseDTO> manejarComercioInactivo(ComercioInactivoException ex, HttpServletRequest request){
+        ErrorResponseDTO error = new ErrorResponseDTO(LocalDateTime.now(),
+                                                      HttpStatus.CONFLICT.value(),
+                                                      "CONFLICT",
+                                                      ex.getMessage(),
+                                                      request.getRequestURI()
+                                                );
+
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(error);
+    }
 }
