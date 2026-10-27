@@ -24,10 +24,11 @@ public class SecurityConfig {
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**", "/h2-console/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/v1/comercios/**").permitAll()
-                        .requestMatchers(HttpMethod.DELETE, "/v1/comercios/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/v1/comercios/**").hasAnyRole("ADMIN", "COMERCIO")
-                        .requestMatchers(HttpMethod.PUT, "/v1/comercios/**").hasAnyRole("ADMIN", "COMERCIO")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/comercios/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/catalogo/**", "/api/v1/productos/**").permitAll()
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/comercios/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/comercios/**").hasAnyRole("ADMIN", "COMERCIO")
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/comercios/**").hasAnyRole("ADMIN", "COMERCIO")
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
