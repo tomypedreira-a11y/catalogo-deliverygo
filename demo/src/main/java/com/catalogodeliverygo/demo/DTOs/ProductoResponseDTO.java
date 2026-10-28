@@ -9,14 +9,16 @@ public class ProductoResponseDTO {
     private String nombre;
     private BigDecimal precio;
     private boolean disponible;
+    private String estado;
     private Long comercioId;
     private List<CategoriaDTO> categorias = new ArrayList<>();
 
-    public ProductoResponseDTO(Long id, String nombre, BigDecimal precio, boolean disponible, Long comercioId, List<CategoriaDTO> categorias) {
+    public ProductoResponseDTO(Long id, String nombre, BigDecimal precio, boolean disponible, String estado, Long comercioId, List<CategoriaDTO> categorias) {
         this.id = id;
         this.nombre = nombre;
         this.precio = precio;
         this.disponible = disponible;
+        this.estado = estado;
         this.comercioId = comercioId;
         this.categorias = categorias;
     }
@@ -38,6 +40,10 @@ public class ProductoResponseDTO {
 
     public boolean isDisponible() {
         return disponible;
+    }
+
+    public String getEstado() {
+        return estado;
     }
 
     public Long getComercioId() {
@@ -62,6 +68,10 @@ public class ProductoResponseDTO {
 
     public void setDisponible(boolean disponible) {
         this.disponible = disponible;
+    }
+
+    public void setEstado(String estado) {
+        this.estado = estado;
     }
 
     public void setComercioId(Long comercioId) {

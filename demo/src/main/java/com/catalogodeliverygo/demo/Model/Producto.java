@@ -10,6 +10,11 @@ import jakarta.persistence.*;
 @Table(name = "productos")
 public class Producto {
 
+    // DM-12: estado es un String controlado, igual que Comercio (DM-04). Distinto de disponible:
+    // INACTIVO es la baja lógica de CU-09; disponible es la pausa temporal de CU-04
+    public static final String ESTADO_ACTIVO = "ACTIVO";
+    public static final String ESTADO_INACTIVO = "INACTIVO";
+
     @Id
     @GeneratedValue (strategy=GenerationType.IDENTITY)
     private Long id;
@@ -25,6 +30,9 @@ public class Producto {
 
     @Column (nullable=false)
     private boolean disponible;
+
+    @Column (nullable=false)
+    private String estado;
 
     @ManyToOne
     @JoinColumn(name = "comercio_id", nullable = false)
@@ -42,11 +50,12 @@ public class Producto {
     public Producto() {
     }
 
-    public Producto(String nombre, String descripcion, BigDecimal precio, boolean disponible, Comercio comercio, List<Categoria> categorias) {
+    public Producto(String nombre, String descripcion, BigDecimal precio, boolean disponible, String estado, Comercio comercio, List<Categoria> categorias) {
         this.nombre = nombre;
         this.descripcion = descripcion;
         this.precio = precio;
         this.disponible = disponible;
+        this.estado = estado;
         this.comercio = comercio;
         this.categorias = categorias;
     }
@@ -71,6 +80,10 @@ public class Producto {
         return disponible;
     }
 
+    public String getEstado() {
+        return estado;
+    }
+
     public Comercio getComercio() {
         return comercio;
     }
@@ -93,6 +106,10 @@ public class Producto {
 
     public void setDisponible(boolean disponible) {
         this.disponible = disponible;
+    }
+
+    public void setEstado(String estado) {
+        this.estado = estado;
     }
 
     public void setComercio(Comercio comercio) {
