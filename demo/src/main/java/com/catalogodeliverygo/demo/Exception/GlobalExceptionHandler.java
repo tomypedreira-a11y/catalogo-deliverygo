@@ -106,6 +106,21 @@ public class GlobalExceptionHandler {
                 .body(error);
     }
 
+    // DM-13: borrar una categoría con productos asociados es un conflicto con el estado actual
+    @ExceptionHandler (CategoriaEnUsoException.class)
+    public ResponseEntity<ErrorResponseDTO> manejarCategoriaEnUso(CategoriaEnUsoException ex, HttpServletRequest request){
+        ErrorResponseDTO error = new ErrorResponseDTO(LocalDateTime.now(),
+                                                      HttpStatus.CONFLICT.value(),
+                                                      "CONFLICT",
+                                                      ex.getMessage(),
+                                                      request.getRequestURI()
+                                                );
+
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(error);
+    }
+
     @ExceptionHandler (HttpMessageNotReadableException.class)
     public ResponseEntity<ErrorResponseDTO> manejarJsonInvalido(HttpMessageNotReadableException ex, HttpServletRequest request){
         ErrorResponseDTO error = new ErrorResponseDTO(LocalDateTime.now(),

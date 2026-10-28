@@ -1,6 +1,7 @@
 package com.catalogodeliverygo.demo.Controller;
 
 import com.catalogodeliverygo.demo.DTOs.CambiarDisponibilidadRequestDTO;
+import com.catalogodeliverygo.demo.DTOs.CambiarEstadoProductoRequestDTO;
 import com.catalogodeliverygo.demo.DTOs.CrearProductoRequestDTO;
 import com.catalogodeliverygo.demo.DTOs.ModificarPrecioRequestDTO;
 import com.catalogodeliverygo.demo.DTOs.ProductoResponseDTO;
@@ -34,5 +35,15 @@ public class ProductoController implements ProductoApi {
     @Override
     public ResponseEntity<ProductoResponseDTO> cambiarDisponibilidad(Long id, CambiarDisponibilidadRequestDTO request) {
         return ResponseEntity.ok(productoService.cambiarDisponibilidad(id, request.getDisponible()));
+    }
+
+    @Override
+    public ResponseEntity<ProductoResponseDTO> obtenerProducto(Long id) {
+        return ResponseEntity.ok(productoService.obtenerProducto(id));
+    }
+
+    @Override
+    public ResponseEntity<ProductoResponseDTO> cambiarEstado(Long id, CambiarEstadoProductoRequestDTO request) {
+        return ResponseEntity.ok(productoService.cambiarEstado(id, request.getActivo()));
     }
 }

@@ -25,7 +25,7 @@ public interface CatalogoApi {
     // API-05 / CU-05 / SRV-05 / DM-07
     @Operation(
         summary = "Buscar catálogo",
-        description = "Devuelve una página de productos disponibles de comercios activos (RN-05) que cumplen los "
+        description = "Devuelve una página de productos activos y disponibles de comercios activos (RN-05) que cumplen los "
                     + "criterios. Todos los filtros son opcionales. Sin resultados responde 200 con la lista vacía."
     )
     @ApiResponse(responseCode = "200", description = "Página de resultados, puede estar vacía")

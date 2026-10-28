@@ -2,6 +2,7 @@ package com.catalogodeliverygo.demo.Controller;
 
 import com.catalogodeliverygo.demo.DTOs.ComercioResponseDTO;
 import com.catalogodeliverygo.demo.DTOs.CrearComercioRequestDTO;
+import com.catalogodeliverygo.demo.DTOs.ModificarComercioRequestDTO;
 import com.catalogodeliverygo.demo.Service.ComercioService;
 
 import org.springframework.http.HttpStatus;
@@ -18,9 +19,14 @@ public class ComercioController implements ComercioApi {
     }
 
     @Override
-    public ResponseEntity<ComercioResponseDTO> registrarComercio(String token, CrearComercioRequestDTO request) {
+    public ResponseEntity<ComercioResponseDTO> registrarComercio(CrearComercioRequestDTO request) {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(comercioService.registrarComercio(request, token));
+                .body(comercioService.registrarComercio(request));
+    }
+
+    @Override
+    public ResponseEntity<ComercioResponseDTO> modificarComercio(Long id, ModificarComercioRequestDTO request) {
+        return ResponseEntity.ok(comercioService.modificarComercio(id, request));
     }
 }
