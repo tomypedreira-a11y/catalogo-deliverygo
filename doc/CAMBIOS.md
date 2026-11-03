@@ -8,7 +8,7 @@ La fuente de verdad sigue siendo el documento de la Primera Entrega. Lo nuevo se
 
 1. Levantar la app: `cd demo` y después `./mvnw clean spring-boot:run`. Si el IDE avisa que cambió el `pom.xml`, recargar Maven.
 2. Abrir **http://localhost:8080/swagger-ui/index.html**. La base arranca con los datos de prueba de `data.sql` (ver más abajo).
-3. La especificación en YAML está en [`doc/openapi.yaml`](openapi.yml). También se puede ver en vivo en `http://localhost:8080/v3/api-docs.yaml`, o pegarla en [editor.swagger.io](https://editor.swagger.io).
+3. La especificación en YAML está en [`doc/openapi.yaml`](openapi.yaml). También se puede ver en vivo en `http://localhost:8080/v3/api-docs.yaml`, o pegarla en [editor.swagger.io](https://editor.swagger.io).
 4. Tests: `./mvnw test`.
 
 Para probar los endpoints protegidos hace falta un token JWT. Se carga con el botón **Authorize** de Swagger, y hay dos de prueba en la sección siguiente.
