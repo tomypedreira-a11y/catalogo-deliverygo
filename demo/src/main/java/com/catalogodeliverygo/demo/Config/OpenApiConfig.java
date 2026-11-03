@@ -16,7 +16,7 @@ import org.springframework.context.annotation.Configuration;
         description = "API del módulo Comercios y Catálogo (Grupo 07). Administra comercios, productos, precios y "
                     + "disponibilidad, y expone el catálogo que consumen Pedidos y el Portal Web."
     ),
-    // Fija la URL para que docs/openapi.yml salga igual sin importar el puerto con que se genere
+    // Fija la URL para que doc/openapi.yaml salga igual sin importar el puerto con que se genere
     servers = @Server(url = "http://localhost:8080", description = "Entorno local")
 )
 // DM-06: el token lo emite el módulo Usuarios y Catálogo lo valida vía INT-01

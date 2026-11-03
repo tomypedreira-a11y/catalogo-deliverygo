@@ -8,7 +8,7 @@ La fuente de verdad sigue siendo el documento de la Primera Entrega. Lo nuevo se
 
 1. Levantar la app: `cd demo` y después `./mvnw clean spring-boot:run`. Si el IDE avisa que cambió el `pom.xml`, recargar Maven.
 2. Abrir **http://localhost:8080/swagger-ui/index.html**. La base arranca con los datos de prueba de `data.sql` (ver más abajo).
-3. La especificación en YAML está en [`docs/openapi.yml`](openapi.yml). También se puede ver en vivo en `http://localhost:8080/v3/api-docs.yaml`, o pegarla en [editor.swagger.io](https://editor.swagger.io).
+3. La especificación en YAML está en [`doc/openapi.yaml`](openapi.yml). También se puede ver en vivo en `http://localhost:8080/v3/api-docs.yaml`, o pegarla en [editor.swagger.io](https://editor.swagger.io).
 4. Tests: `./mvnw test`.
 
 Para probar los endpoints protegidos hace falta un token JWT. Se carga con el botón **Authorize** de Swagger, y hay dos de prueba en la sección siguiente.
@@ -76,7 +76,7 @@ Todos los errores tienen el mismo formato (`ErrorResponseDTO`): `timestamp`, `st
 ### Sin la app levantada
 
 - `./mvnw test` corre los 59 tests. Tiene que terminar en `BUILD SUCCESS`.
-- `docs/openapi.yml` se puede pegar en https://editor.swagger.io para ver la documentación sin correr nada.
+- `doc/openapi.yaml` se puede pegar en https://editor.swagger.io para ver la documentación sin correr nada.
 
 ## Endpoints
 
@@ -110,7 +110,7 @@ Todos los errores tienen el mismo formato (`ErrorResponseDTO`): `timestamp`, `st
 - **DTOs de entrada nuevos**: `ModificarComercioRequestDTO` (sin CUIT, por RN-01), `SucursalRequestDTO`, `CategoriaRequestDTO` y `CambiarEstadoProductoRequestDTO`.
 - **`Producto.estado`** (`"ACTIVO"` / `"INACTIVO"`) para la baja lógica de CU-09, también expuesto en `ProductoResponseDTO`. Ver DM-12.
 - **`GlobalExceptionHandler`**: los errores de validación, JSON mal formado y parámetro de tipo incorrecto ahora responden con `ErrorResponseDTO` (DM-08). También traduce la nueva `CategoriaEnUsoException` a 409 (DM-13).
-- **`docs/openapi.yml`**: la especificación en YAML. **Se regenera sola** con `./mvnw test`: el test `OpenApiYamlTest` le pide la especificación a springdoc y la escribe en el archivo. Si cambió un endpoint, el YAML queda modificado y listo para commitear. Para que salga siempre igual, `OpenApiConfig` fija la URL del servidor (`http://localhost:8080`) y `application.properties` ordena las claves (`springdoc.writer-with-order-by-keys=true`).
+- **`doc/openapi.yaml`**: la especificación en YAML. **Se regenera sola** con `./mvnw test`: el test `OpenApiYamlTest` le pide la especificación a springdoc y la escribe en el archivo. Si cambió un endpoint, el YAML queda modificado y listo para commitear. Para que salga siempre igual, `OpenApiConfig` fija la URL del servidor (`http://localhost:8080`) y `application.properties` ordena las claves (`springdoc.writer-with-order-by-keys=true`).
 
 ## Base para implementar los Services
 
@@ -159,7 +159,7 @@ En total hay **59 tests**: 54 de los Services (unitarios con Mockito, salvo los 
 
 | ID | Decisión | Motivo |
 | --- | --- | --- |
-| DM-11 | La interfaz de cada controlador se documenta con springdoc/OpenAPI: interfaces `*Api` anotadas que el controlador implementa, y la especificación se exporta a `docs/openapi.yml`. | Lo pidió el docente. Al estar en el código no se desactualiza, y deja la anotación separada de la implementación. |
+| DM-11 | La interfaz de cada controlador se documenta con springdoc/OpenAPI: interfaces `*Api` anotadas que el controlador implementa, y la especificación se exporta a `doc/openapi.yaml`. | Lo pidió el docente. Al estar en el código no se desactualiza, y deja la anotación separada de la implementación. |
 | DM-12 | `Producto` tiene un `estado` String controlado (`ACTIVO` / `INACTIVO`), distinto de `disponible`. | CU-09 necesita una baja lógica, distinta de la pausa de CU-04. Sigue el mismo criterio que `Comercio.estado` (DM-04), y el paso 6 de CU-02 ya preveía `estado = "ACTIVO"`. Por RN-05, el catálogo y el detalle muestran solo productos ACTIVOS. |
 | DM-13 | Borrar una categoría con productos asociados responde 409. | Esos productos quedarían sin categoría, en contra de RN-03. |
 | DM-14 | `/error` es público en `SecurityConfig`. | Sin eso, los errores 500 llegan al cliente como 403. |
@@ -167,4 +167,4 @@ En total hay **59 tests**: 54 de los Services (unitarios con Mockito, salvo los 
 
 ## Pendiente
 
-Nada de lo planificado para esta rama. Antes de subir algo que cambie un endpoint, correr `./mvnw test` para que `docs/openapi.yml` quede actualizado.
+Nada de lo planificado para esta rama. Antes de subir algo que cambie un endpoint, correr `./mvnw test` para que `doc/openapi.yaml` quede actualizado.

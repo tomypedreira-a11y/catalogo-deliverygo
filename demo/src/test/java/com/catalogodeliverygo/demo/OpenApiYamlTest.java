@@ -14,7 +14,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.web.servlet.MockMvc;
 
-// DM-11: mantiene docs/openapi.yml al día. Cada "./mvnw test" pide la especificación a springdoc y la escribe
+// DM-11: mantiene doc/openapi.yaml al día. Cada "./mvnw test" pide la especificación a springdoc y la escribe
 // en el archivo, así no hay que exportarla a mano cuando cambia un endpoint. Si cambió, queda para commitear
 // MockMvc arma un contexto de Spring distinto al de los otros tests. Con su propia base en memoria, el data.sql
 // no se carga dos veces sobre la misma base (chocaría con el CUIT unique)
@@ -22,8 +22,8 @@ import org.springframework.test.web.servlet.MockMvc;
 @AutoConfigureMockMvc
 class OpenApiYamlTest {
 
-    // Maven corre los tests desde demo/, y docs/ está en la raíz del repositorio
-    private static final Path ARCHIVO = Path.of("..", "docs", "openapi.yml");
+    // Maven corre los tests desde demo/, y doc/ está en la raíz del repositorio
+    private static final Path ARCHIVO = Path.of("..", "doc", "openapi.yaml");
 
     @Autowired
     private MockMvc mockMvc;
