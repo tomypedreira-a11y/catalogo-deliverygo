@@ -25,7 +25,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
 
-// CU-01 / SRV-01: un test por flujo del caso de uso
+// CU-01 / SRV-01, API-14 y CU-10: un test por flujo del caso de uso
 @ExtendWith(MockitoExtension.class)
 class ComercioServiceTest {
 
@@ -71,6 +71,37 @@ class ComercioServiceTest {
             .thenThrow(new DataIntegrityViolationException("unique cuit"));
 
         assertThrows(RecursoDuplicadoException.class, () -> comercioService.registrarComercio(request));
+    }
+
+    // ---- API-14 / INT-03: consultar comercio ----
+
+    @Test
+    void obtieneUnComercioActivo() {
+        when(comercioRepository.findById(1L)).thenReturn(Optional.of(
+            new Comercio("30712345678", "La Esquina SRL", "Av. Corrientes 1450", "Hamburguesería", Comercio.ESTADO_ACTIVO)));
+
+        ComercioResponseDTO respuesta = comercioService.obtenerComercio(1L);
+
+        assertEquals("30712345678", respuesta.getCuit());
+        assertEquals("La Esquina SRL", respuesta.getRazonSocial());
+        assertEquals(Comercio.ESTADO_ACTIVO, respuesta.getEstado());
+    }
+
+    // DM-18: un comercio INACTIVO se devuelve igual, con su estado, para que el otro módulo lo vea
+    @Test
+    void obtieneTambienUnComercioInactivo() {
+        when(comercioRepository.findById(4L)).thenReturn(Optional.of(
+            new Comercio("30712345681", "Sushi Cerrado SRL", "Av. Callao 300", "Sushi", Comercio.ESTADO_INACTIVO)));
+
+        assertEquals(Comercio.ESTADO_INACTIVO, comercioService.obtenerComercio(4L).getEstado());
+    }
+
+    // Flujo alternativo: comercio inexistente -> 404
+    @Test
+    void obtenerRechazaUnComercioInexistente() {
+        when(comercioRepository.findById(999L)).thenReturn(Optional.empty());
+
+        assertThrows(RecursoNoEncontradoException.class, () -> comercioService.obtenerComercio(999L));
     }
 
     // ---- CU-10: modificar información del comercio ----

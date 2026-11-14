@@ -52,6 +52,8 @@ public interface CategoriaApi {
                  content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class)))
     @ApiResponse(responseCode = "403", description = "Usuario sin rol ADMIN (DM-15)",
                  content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class)))
+    @ApiResponse(responseCode = "409", description = "Ya existe una categoría con ese nombre, sin distinguir mayúsculas ni espacios exteriores (DM-20)",
+                 content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class)))
     @PostMapping
     ResponseEntity<CategoriaDTO> crearCategoria(@Valid @RequestBody CategoriaRequestDTO request);
 
@@ -69,6 +71,8 @@ public interface CategoriaApi {
     @ApiResponse(responseCode = "403", description = "Usuario sin rol ADMIN (DM-15)",
                  content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class)))
     @ApiResponse(responseCode = "404", description = "Categoría inexistente",
+                 content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class)))
+    @ApiResponse(responseCode = "409", description = "Otra categoría ya tiene ese nombre, sin distinguir mayúsculas ni espacios exteriores (DM-20)",
                  content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class)))
     @PutMapping("/{id}")
     ResponseEntity<CategoriaDTO> modificarCategoria(

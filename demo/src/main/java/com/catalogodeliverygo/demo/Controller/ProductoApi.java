@@ -41,6 +41,9 @@ public interface ProductoApi {
                  content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class)))
     @ApiResponse(responseCode = "401", description = "Falta el token o es inválido (DM-15)",
                  content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class)))
+    // DM-16: las escrituras de productos exigen ADMIN o COMERCIO
+    @ApiResponse(responseCode = "403", description = "Rol sin permiso para modificar productos (solo ADMIN o COMERCIO)",
+                 content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class)))
     // DM-09: findByIdAndEstado no distingue comercio inexistente de inactivo
     @ApiResponse(responseCode = "404", description = "Comercio inexistente o inactivo (RN-02)",
                  content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class)))
@@ -58,6 +61,9 @@ public interface ProductoApi {
     @ApiResponse(responseCode = "400", description = "Precio faltante o <= 0 (RN-04), o id no numérico",
                  content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class)))
     @ApiResponse(responseCode = "401", description = "Falta el token o es inválido (DM-15)",
+                 content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class)))
+    // DM-16: las escrituras de productos exigen ADMIN o COMERCIO
+    @ApiResponse(responseCode = "403", description = "Rol sin permiso para modificar productos (solo ADMIN o COMERCIO)",
                  content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class)))
     @ApiResponse(responseCode = "404", description = "Producto inexistente",
                  content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class)))
@@ -80,6 +86,9 @@ public interface ProductoApi {
     @ApiResponse(responseCode = "400", description = "Falta el campo disponible, o id no numérico",
                  content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class)))
     @ApiResponse(responseCode = "401", description = "Falta el token o es inválido (DM-15)",
+                 content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class)))
+    // DM-16: las escrituras de productos exigen ADMIN o COMERCIO
+    @ApiResponse(responseCode = "403", description = "Rol sin permiso para modificar productos (solo ADMIN o COMERCIO)",
                  content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class)))
     @ApiResponse(responseCode = "404", description = "Producto inexistente",
                  content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class)))
@@ -117,6 +126,9 @@ public interface ProductoApi {
     @ApiResponse(responseCode = "400", description = "Falta el campo activo, o id no numérico",
                  content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class)))
     @ApiResponse(responseCode = "401", description = "Falta el token o es inválido (DM-15)",
+                 content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class)))
+    // DM-16: las escrituras de productos exigen ADMIN o COMERCIO
+    @ApiResponse(responseCode = "403", description = "Rol sin permiso para modificar productos (solo ADMIN o COMERCIO)",
                  content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class)))
     @ApiResponse(responseCode = "404", description = "Producto inexistente",
                  content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class)))

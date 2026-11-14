@@ -17,6 +17,7 @@ public class Comercio {
     @GeneratedValue(strategy=GenerationType.IDENTITY)
     private Long id;
 
+    // RN-01: el CUIT se fija en el alta y no cambia; por eso no tiene setter
     @Column(nullable=false, unique=true)
     private String cuit;
 
@@ -80,10 +81,6 @@ public class Comercio {
 
     public List<Producto> getProductos() {
         return productos;
-    }
-
-    public void setCuit(String cuit) {
-        this.cuit = cuit;
     }
 
     public void setRazonSocial(String razonSocial) {

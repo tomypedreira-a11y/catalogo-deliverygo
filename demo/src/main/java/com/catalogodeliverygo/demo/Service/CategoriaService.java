@@ -3,6 +3,7 @@ package com.catalogodeliverygo.demo.Service;
 import com.catalogodeliverygo.demo.DTOs.CategoriaDTO;
 import com.catalogodeliverygo.demo.DTOs.CategoriaRequestDTO;
 import com.catalogodeliverygo.demo.Exception.CategoriaEnUsoException;
+import com.catalogodeliverygo.demo.Exception.RecursoDuplicadoException;
 import com.catalogodeliverygo.demo.Exception.RecursoNoEncontradoException;
 import com.catalogodeliverygo.demo.Mapper.DtoMapper;
 import com.catalogodeliverygo.demo.Model.Categoria;
@@ -39,15 +40,25 @@ public class CategoriaService {
                                   .toList();
     }
 
-    // CU-08
+    // CU-08: rechaza con 409 un nombre que ya existe, sin distinguir mayúsculas ni espacios exteriores (DM-20).
+    // El nombre se guarda recortado, para que la comparación valga también contra las categorías ya guardadas
     public CategoriaDTO crearCategoria(CategoriaRequestDTO request) {
-        return mapper.toCategoriaDTO(categoriaRepository.save(new Categoria(request.getNombre())));
+        String nombre = request.getNombre().trim();
+        if (categoriaRepository.existsByNombreIgnoreCase(nombre)) {
+            throw new RecursoDuplicadoException("Ya existe una categoría con el nombre " + nombre);
+        }
+        return mapper.toCategoriaDTO(categoriaRepository.save(new Categoria(nombre)));
     }
 
-    // CU-08
+    // CU-08: mismo chequeo que al crear, pero sin contar la propia categoría (DM-20). Así se puede guardar
+    // sin cambiar el nombre, o cambiando solo mayúsculas
     public CategoriaDTO modificarCategoria(Long categoriaId, CategoriaRequestDTO request) {
         Categoria categoria = buscarCategoria(categoriaId);
-        categoria.setNombre(request.getNombre());
+        String nombre = request.getNombre().trim();
+        if (categoriaRepository.existsByNombreIgnoreCaseAndIdNot(nombre, categoriaId)) {
+            throw new RecursoDuplicadoException("Ya existe una categoría con el nombre " + nombre);
+        }
+        categoria.setNombre(nombre);
         return mapper.toCategoriaDTO(categoriaRepository.save(categoria));
     }
 

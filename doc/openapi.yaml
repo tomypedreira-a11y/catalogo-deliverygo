@@ -7,14 +7,14 @@ info:
   version: v1
 servers:
 - description: Entorno local
-  url: http://localhost:8080
+  url: http://localhost:8082
 tags:
 - description: "Búsqueda pública del catálogo (CU-05), consumida por Portal Web y\
     \ Pedidos (INT-03)"
   name: Catálogo
 - description: ABM de sucursales de un comercio (CU-07)
   name: Sucursales
-- description: "Alta y modificación de comercios (CU-01, CU-10)"
+- description: "Alta, consulta y modificación de comercios (CU-01, CU-10, API-14)"
   name: Comercios
 - description: "Alta, consulta, precio, disponibilidad y estado de productos (CU-02,\
     \ CU-03, CU-04, CU-06, CU-09)"
@@ -149,6 +149,13 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponseDTO"
           description: Usuario sin rol ADMIN (DM-15)
+        "409":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDTO"
+          description: "Ya existe una categoría con ese nombre, sin distinguir mayú\
+            sculas ni espacios exteriores (DM-20)"
       security:
       - bearerAuth: []
       summary: Crear categoría
@@ -248,6 +255,13 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponseDTO"
           description: Categoría inexistente
+        "409":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDTO"
+          description: "Otra categoría ya tiene ese nombre, sin distinguir mayúsculas\
+            \ ni espacios exteriores (DM-20)"
       security:
       - bearerAuth: []
       summary: Modificar categoría
@@ -515,6 +529,35 @@ paths:
       tags:
       - Sucursales
   /api/v1/comercios/{id}:
+    get:
+      description: "Devuelve id, CUIT, razón social y estado de un comercio. A diferencia\
+        \ del catálogo, también devuelve comercios INACTIVOS, para que el consumidor\
+        \ pueda ver el estado (DM-18). Endpoint público, sin token."
+      operationId: obtenerComercio
+      parameters:
+      - description: Id del comercio
+        in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ComercioResponseDTO"
+          description: "Datos del comercio, activo o inactivo"
+        "404":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDTO"
+          description: Comercio inexistente
+      summary: Consultar comercio
+      tags:
+      - Comercios
     put:
       description: "Edita razón social, dirección o rubro de un comercio. El CUIT\
         \ no se puede modificar (RN-01), por eso no forma parte del cuerpo."
@@ -601,6 +644,12 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponseDTO"
           description: Falta el token o es inválido (DM-15)
+        "403":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDTO"
+          description: Rol sin permiso para modificar productos (solo ADMIN o COMERCIO)
         "404":
           content:
             '*/*':
@@ -688,6 +737,12 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponseDTO"
           description: Falta el token o es inválido (DM-15)
+        "403":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDTO"
+          description: Rol sin permiso para modificar productos (solo ADMIN o COMERCIO)
         "404":
           content:
             '*/*':
@@ -745,6 +800,12 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponseDTO"
           description: Falta el token o es inválido (DM-15)
+        "403":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDTO"
+          description: Rol sin permiso para modificar productos (solo ADMIN o COMERCIO)
         "404":
           content:
             '*/*':
@@ -800,6 +861,12 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponseDTO"
           description: Falta el token o es inválido (DM-15)
+        "403":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDTO"
+          description: Rol sin permiso para modificar productos (solo ADMIN o COMERCIO)
         "404":
           content:
             '*/*':
