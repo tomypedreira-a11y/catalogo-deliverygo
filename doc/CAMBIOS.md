@@ -7,9 +7,19 @@ La fuente de verdad sigue siendo el documento de la Primera Entrega. Lo nuevo se
 ## Cómo verlo
 
 1. Levantar la app: `cd demo` y después `./mvnw clean spring-boot:run`. Si el IDE avisa que cambió el `pom.xml`, recargar Maven.
-2. Abrir **http://localhost:8080/swagger-ui/index.html**. La base arranca con los datos de prueba de `data.sql` (ver más abajo).
-3. La especificación en YAML está en [`doc/openapi.yaml`](openapi.yaml). También se puede ver en vivo en `http://localhost:8080/v3/api-docs.yaml`, o pegarla en [editor.swagger.io](https://editor.swagger.io).
+2. Abrir **http://localhost:8082/swagger-ui/index.html**. La base arranca con los datos de prueba de `data.sql` (ver más abajo).
+3. La especificación en YAML está en [`doc/openapi.yaml`](openapi.yaml). También se puede ver en vivo en `http://localhost:8082/v3/api-docs.yaml`, o pegarla en [editor.swagger.io](https://editor.swagger.io).
 4. Tests: `./mvnw test`.
+
+La app escucha en el puerto **8082** por defecto. Tres variables de entorno permiten cambiar la configuración sin tocar el código; si no se definen, se usan los valores por defecto de `application.properties`:
+
+| Variable | Para qué | Valor por defecto |
+| --- | --- | --- |
+| `SERVER_PORT` | Puerto HTTP | `8082` |
+| `JWT_SECRET` | Clave HMAC con la que el módulo Usuarios firma los tokens (DM-17). Mínimo 32 bytes: si es más corta, la app no arranca | La clave de desarrollo, con la que funcionan los tokens de prueba de abajo |
+| `CORS_ALLOWED_ORIGINS` | Orígenes del front habilitados, separados por coma (DM-19) | `http://localhost:5173,http://localhost:5174` |
+
+Por ejemplo: `SERVER_PORT=9090 JWT_SECRET=una-clave-de-al-menos-32-bytes-123 ./mvnw spring-boot:run`.
 
 Para probar los endpoints protegidos hace falta un token JWT. Se carga con el botón **Authorize** de Swagger, y hay dos de prueba en la sección siguiente.
 
@@ -18,12 +28,12 @@ Para probar los endpoints protegidos hace falta un token JWT. Se carga con el bo
 ### Preparación
 
 1. `cd demo` y `./mvnw clean spring-boot:run`. Cuando la consola diga `Started DemoApplication`, está lista.
-2. Abrir http://localhost:8080/swagger-ui/index.html.
+2. Abrir http://localhost:8082/swagger-ui/index.html.
 3. Cada vez que arranca, la base se carga desde cero con los datos de `data.sql`. Si una prueba cambió algo, reiniciar la app lo deja como al principio.
 
 ### Tokens de prueba
 
-El módulo Usuarios todavía no existe, así que estos tokens están firmados con la clave de `JwtService`. No vencen.
+El módulo Usuarios todavía no existe, así que estos tokens están firmados con la clave de desarrollo, el valor por defecto de `app.jwt.secret` (DM-17). Si se define otra `JWT_SECRET`, dejan de servir. No vencen.
 
 - **ADMIN**:
   `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJwcnVlYmEtYWRtaW4iLCJyb2xlIjoiQURNSU4ifQ.jXvvRRZMakLjcEvXkDGB8wnlzHTW7Y5171IWoIOKuFg`
@@ -70,12 +80,14 @@ Seguir el orden de la tabla. Algunos pasos cambian datos que usa el paso siguien
 | 17 | CU-08 | ADMIN | `POST /api/v1/categorias` | `{"nombre":"Wraps"}` | 201 |
 | 18 | CU-08 | ADMIN | `DELETE /api/v1/categorias/{id}` | id `1` | 409: tiene productos asociados (DM-13) |
 | 19 | CU-10 | COMERCIO | `PUT /api/v1/comercios/{id}` | id `1`, `{"razonSocial":"La Esquina Burgers","direccion":"Av. Siempre Viva 742","rubro":"Hamburguesería"}` | 200 con la razón social nueva; el CUIT no cambia |
+| 20 | API-14 | ninguno | `GET /api/v1/comercios/{id}` | id `4`; después id `999` | 200 con `estado: INACTIVO` (DM-18); con `999`, 404 |
+| 21 | CU-08 | ADMIN | `POST /api/v1/categorias` | `{"nombre":"  bebidas "}` | 409: ya existe "Bebidas", sin distinguir mayúsculas ni espacios (DM-20) |
 
 Todos los errores tienen el mismo formato (`ErrorResponseDTO`): `timestamp`, `status`, `error`, `message` y `path`.
 
 ### Sin la app levantada
 
-- `./mvnw test` corre los 59 tests. Tiene que terminar en `BUILD SUCCESS`.
+- `./mvnw test` corre los 90 tests. Tiene que terminar en `BUILD SUCCESS`.
 - `doc/openapi.yaml` se puede pegar en https://editor.swagger.io para ver la documentación sin correr nada.
 
 ## Endpoints
@@ -83,9 +95,9 @@ Todos los errores tienen el mismo formato (`ErrorResponseDTO`): `timestamp`, `st
 | API | Verbo y ruta | CU | Token |
 | --- | --- | --- | --- |
 | API-01 | `POST /api/v1/comercios` | CU-01 Registrar comercio | ADMIN o COMERCIO |
-| API-02 | `POST /api/v1/productos` | CU-02 Publicar producto | Sí |
-| API-03 | `PATCH /api/v1/productos/{id}/precio` | CU-03 Modificar precio | Sí |
-| API-04 | `PATCH /api/v1/productos/{id}/disponibilidad` | CU-04 Cambiar disponibilidad | Sí |
+| API-02 | `POST /api/v1/productos` | CU-02 Publicar producto | ADMIN o COMERCIO |
+| API-03 | `PATCH /api/v1/productos/{id}/precio` | CU-03 Modificar precio | ADMIN o COMERCIO |
+| API-04 | `PATCH /api/v1/productos/{id}/disponibilidad` | CU-04 Cambiar disponibilidad | ADMIN o COMERCIO |
 | API-05 | `GET /api/v1/catalogo` | CU-05 Buscar catálogo | No |
 | API-06 | `GET /api/v1/productos/{id}` | CU-06 Consultar detalle de producto | No |
 | API-07 | `GET /api/v1/comercios/{comercioId}/sucursales` | CU-07 Administrar sucursales | No |
@@ -93,12 +105,13 @@ Todos los errores tienen el mismo formato (`ErrorResponseDTO`): `timestamp`, `st
 | API-09 | `PUT` y `DELETE /api/v1/comercios/{comercioId}/sucursales/{id}` | CU-07 | ADMIN o COMERCIO |
 | API-10 | `GET /api/v1/categorias` | CU-08 Administrar categorías | No |
 | API-11 | `POST /api/v1/categorias`, `PUT` y `DELETE /api/v1/categorias/{id}` | CU-08 | ADMIN |
-| API-12 | `PATCH /api/v1/productos/{id}/estado` | CU-09 Desactivar/reactivar producto | Sí |
+| API-12 | `PATCH /api/v1/productos/{id}/estado` | CU-09 Desactivar/reactivar producto | ADMIN o COMERCIO |
 | API-13 | `PUT /api/v1/comercios/{id}` | CU-10 Modificar info. de comercio | ADMIN o COMERCIO |
+| API-14 | `GET /api/v1/comercios/{id}` | Consultar comercio, para otros módulos (INT-03) | No |
 
-"Sí" significa cualquier usuario autenticado, porque la regla general de `SecurityConfig` es `anyRequest().authenticated()`.
+Las escrituras sobre productos exigen ADMIN o COMERCIO (DM-16). Antes alcanzaba con cualquier usuario autenticado, porque caían en la regla general `anyRequest().authenticated()`, que sigue al final de `SecurityConfig` para las rutas sin regla propia.
 
-**Roles:** el token trae el rol en el claim `role`, y `JwtAuthenticationFilter` lo convierte en `ROLE_<rol>`. Los valores que usa el código son `ADMIN` y `COMERCIO`. El actor "Comerciante" de la Primera Entrega corresponde al rol técnico `COMERCIO`.
+**Roles:** el token trae el rol en el claim `role`, y `JwtAuthenticationFilter` lo convierte en `ROLE_<rol>`. Los valores que usa el código son `ADMIN` y `COMERCIO`; un token con otro rol (por ejemplo `CLIENTE`) recibe 403 en los endpoints que piden rol. El actor "Comerciante" de la Primera Entrega corresponde al rol técnico `COMERCIO`.
 
 ## Qué se agregó
 
@@ -110,7 +123,7 @@ Todos los errores tienen el mismo formato (`ErrorResponseDTO`): `timestamp`, `st
 - **DTOs de entrada nuevos**: `ModificarComercioRequestDTO` (sin CUIT, por RN-01), `SucursalRequestDTO`, `CategoriaRequestDTO` y `CambiarEstadoProductoRequestDTO`.
 - **`Producto.estado`** (`"ACTIVO"` / `"INACTIVO"`) para la baja lógica de CU-09, también expuesto en `ProductoResponseDTO`. Ver DM-12.
 - **`GlobalExceptionHandler`**: los errores de validación, JSON mal formado y parámetro de tipo incorrecto ahora responden con `ErrorResponseDTO` (DM-08). También traduce la nueva `CategoriaEnUsoException` a 409 (DM-13).
-- **`doc/openapi.yaml`**: la especificación en YAML. **Se regenera sola** con `./mvnw test`: el test `OpenApiYamlTest` le pide la especificación a springdoc y la escribe en el archivo. Si cambió un endpoint, el YAML queda modificado y listo para commitear. Para que salga siempre igual, `OpenApiConfig` fija la URL del servidor (`http://localhost:8080`) y `application.properties` ordena las claves (`springdoc.writer-with-order-by-keys=true`).
+- **`doc/openapi.yaml`**: la especificación en YAML. **Se regenera sola** con `./mvnw test`: el test `OpenApiYamlTest` le pide la especificación a springdoc y la escribe en el archivo. Si cambió un endpoint, el YAML queda modificado y listo para commitear. Para que salga siempre igual, `OpenApiConfig` fija la URL del servidor (`http://localhost:8082`) y `application.properties` ordena las claves (`springdoc.writer-with-order-by-keys=true`).
 
 ## Base para implementar los Services
 
@@ -138,13 +151,15 @@ Todos los errores tienen el mismo formato (`ErrorResponseDTO`): `timestamp`, `st
 | CU-05 Buscar catálogo | `CatalogoService.buscarCatalogo` | Valida los criterios (DM-07): `precioMin` y `precioMax` no negativos, `precioMin ≤ precioMax`, `page ≥ 0` y `size` entre 1 y 100; si no, 400. Busca con `ProductoRepository.findByCriterios` (REP-04), que combina los filtros de `ProductoSpecifications` con `JpaSpecificationExecutor`. Siempre aplica RN-05 (producto ACTIVO y disponible, comercio ACTIVO), y suma un filtro por cada criterio informado: `texto` en nombre, descripción y razón social (sin distinguir mayúsculas), `categoriaId` repetible (con `distinct`, para no duplicar productos con varias categorías), `comercioId` y rango de precio. Ordena por nombre y pagina. Sin resultados devuelve 200 con la lista vacía. | `CatalogoServiceTest` (14, contra los datos de `data.sql`) |
 | CU-06 Consultar detalle de producto | `ProductoService.obtenerProducto` | Devuelve el producto solo si está ACTIVO, disponible y su comercio está ACTIVO (RN-05). En cualquier otro caso responde 404 con el mismo mensaje que si no existiera, para no revelar productos ocultos. Endpoint público. | `ProductoServiceTest` (5) |
 | CU-07 Administrar sucursales | `SucursalService` | **Listar:** el comercio tiene que existir (404); es una lectura pública. **Crear, modificar y borrar:** el comercio tiene que existir (404) y estar ACTIVO (409, RN-02). Para modificar y borrar, la sucursal tiene que pertenecer a ese comercio; si es de otro, responde 404 (REL-01). Se agregó `SucursalRepository.findByComercioId`. | `SucursalServiceTest` (9) |
-| CU-08 Administrar categorías | `CategoriaService` | **Listar:** ordenado por nombre; es público. **Crear y modificar:** solo ADMIN (lo exige `SecurityConfig`); modificar una categoría inexistente da 404. **Borrar:** 404 si no existe, y **409** si algún producto la usa, incluidos los INACTIVOS (DM-13, RN-03). Se agregaron `ProductoRepository.existsByCategoriasId` y la excepción `CategoriaEnUsoException`. | `CategoriaServiceTest` (7) |
+| CU-08 Administrar categorías | `CategoriaService` | **Listar:** ordenado por nombre; es público. **Crear y modificar:** solo ADMIN (lo exige `SecurityConfig`); modificar una categoría inexistente da 404. Un nombre que ya existe da **409**, sin distinguir mayúsculas ni espacios exteriores; al modificar no cuenta la propia categoría, así que se puede guardar con el mismo nombre o cambiando solo mayúsculas (DM-20). El nombre se guarda sin espacios exteriores. Se agregaron `CategoriaRepository.existsByNombreIgnoreCase` y `existsByNombreIgnoreCaseAndIdNot`. **Borrar:** 404 si no existe, y **409** si algún producto la usa, incluidos los INACTIVOS (DM-13, RN-03). Se agregaron `ProductoRepository.existsByCategoriasId` y la excepción `CategoriaEnUsoException`. | `CategoriaServiceTest` (12) y `CategoriaRepositoryTest` (2, contra los datos de `data.sql`) |
 | CU-09 Desactivar/reactivar producto | `ProductoService.cambiarEstado` | Mismo paso común que CU-03 (404 / 409). `activo: false` pasa `estado` a INACTIVO y `activo: true` lo vuelve a ACTIVO (DM-12). No toca `disponible`. Un producto INACTIVO deja de salir en el detalle y en el catálogo (RN-05), pero no se borra. | `ProductoServiceTest` (4) |
-| CU-10 Modificar info. de comercio | `ComercioService.modificarComercio` | Busca el comercio con `findById`: si no existe, 404. Actualiza razón social, dirección y rubro y devuelve DTO-02. El CUIT no cambia (RN-01): no está en el DTO, y si alguien lo manda en el JSON se ignora. La Primera Entrega asocia CU-10 solo con RN-01, así que también se puede modificar un comercio inactivo. | `ComercioServiceTest` (2) |
+| CU-10 Modificar info. de comercio | `ComercioService.modificarComercio` | Busca el comercio con `findById`: si no existe, 404. Actualiza razón social, dirección y rubro y devuelve DTO-02. El CUIT no cambia (RN-01): no está en el DTO, si alguien lo manda en el JSON se ignora, y `Comercio` no tiene `setCuit`. La Primera Entrega asocia CU-10 solo con RN-01, así que también se puede modificar un comercio inactivo. | `ComercioServiceTest` (2) |
+
+**API-14** (`ComercioService.obtenerComercio`, de solo lectura): busca el comercio con `findById` y devuelve DTO-02 (id, CUIT, razón social y estado). Si no existe, 404. A diferencia del catálogo, no filtra por estado: un comercio INACTIVO responde 200 con su estado (DM-18), porque Opiniones y Analítica lo usan para validar el comercio (INT-03). Tests: `ComercioServiceTest` (3) y `ComercioControllerTest` (4).
 
 El token ya no es parámetro de `registrarComercio`: lo valida `SecurityConfig` antes de llegar al controlador (DM-06).
 
-En total hay **59 tests**: 54 de los Services (unitarios con Mockito, salvo los de CU-05, que son de integración contra H2), 3 de `DatosDePruebaTest`, `OpenApiYamlTest` y el de arranque de la aplicación.
+En total hay **90 tests**: 62 de los Services (unitarios con Mockito, salvo los de CU-05, que son de integración contra H2), 2 de `CategoriaRepositoryTest`, 3 de `DatosDePruebaTest`, `OpenApiYamlTest`, el de arranque de la aplicación, 4 de `JwtServiceTest`, 13 de `SeguridadProductosTest` y 4 de `ComercioControllerTest`. Los dos últimos usan MockMvc y generan sus tokens con jjwt y la misma clave de `app.jwt.secret`.
 
 ## Cambios en la seguridad (`Secutiry/SecurityConfig.java`)
 
@@ -154,6 +169,10 @@ En total hay **59 tests**: 54 de los Services (unitarios con Mockito, salvo los 
 - **Sucursales**: el `DELETE` se permite a ADMIN y COMERCIO. Antes todo `DELETE` bajo `/comercios` era solo para ADMIN, y el comerciante no podía borrar sus propias sucursales. La regla específica va antes que la general.
 - **401 y 403 con `ErrorResponseDTO` (DM-15)**: `JsonAuthenticationEntryPoint` responde **401** cuando falta el token, es inválido o está vencido, y `JsonAccessDeniedHandler` responde **403** cuando el token es válido pero el rol no alcanza. Se registran en `SecurityConfig` con `.exceptionHandling(...)`. Antes los dos casos daban 403 con el formato propio de Spring. En Swagger, los endpoints protegidos documentan el 401.
 - **CORS con `PATCH`**: la lista de métodos permitidos no incluía `PATCH`, así que el front (`localhost:5173`) no podía llamar a API-03, API-04 ni API-12.
+- **Escrituras de productos solo para ADMIN o COMERCIO (DM-16)**: `POST`, `PATCH`, `PUT` y `DELETE` sobre `/api/v1/productos/**`. Los `GET` siguen públicos. Las reglas van antes de `anyRequest()`. Sin token responde 401; con otro rol, 403.
+- **Clave JWT por configuración (DM-17)**: `JwtService` recibe la clave por constructor desde `app.jwt.secret` (`JWT_SECRET`) en vez de tenerla como constante. Si tiene menos de 32 bytes, la app no arranca y lo dice en el mensaje. Los claims que lee no cambian: `sub` y `role`.
+- **`GET /api/v1/comercios/{id}` público (DM-18)**: ya lo cubría la regla de `GET /api/v1/comercios/**`.
+- **CORS configurable (DM-19)**: los orígenes salen de `app.cors.allowed-origins` (`CORS_ALLOWED_ORIGINS`); por defecto, `localhost:5173` y `localhost:5174`. Métodos y headers, igual que antes.
 
 ## Decisiones nuevas
 
@@ -164,6 +183,11 @@ En total hay **59 tests**: 54 de los Services (unitarios con Mockito, salvo los 
 | DM-13 | Borrar una categoría con productos asociados responde 409. | Esos productos quedarían sin categoría, en contra de RN-03. |
 | DM-14 | `/error` es público en `SecurityConfig`. | Sin eso, los errores 500 llegan al cliente como 403. |
 | DM-15 | Sin token válido responde 401; con token válido pero rol insuficiente, 403. Ambos con `ErrorResponseDTO`. | Es la distinción estándar de HTTP: el cliente sabe si tiene que loguearse (401) o si no tiene permiso (403). Completa DM-08. |
+| DM-16 | Publicar, modificar precio, cambiar disponibilidad y desactivar productos (CU-02, CU-03, CU-04, CU-09) exige rol ADMIN o COMERCIO. | Con `anyRequest().authenticated()` cualquier usuario logueado, por ejemplo un cliente, podía cambiar productos. Sigue el mismo criterio que comercios y sucursales. |
+| DM-17 | La clave del JWT se toma de `app.jwt.secret` (variable `JWT_SECRET`), con un mínimo de 32 bytes. El valor por defecto es la clave de desarrollo. | La clave la define el módulo Usuarios y no puede quedar fija en el código de cada entorno. El mínimo es el que exige HS256; con el valor por defecto siguen andando los tokens de prueba. |
+| DM-18 | `GET /api/v1/comercios/{id}` (API-14) es público y devuelve también comercios INACTIVOS, con su estado. | Lo consumen otros módulos (Opiniones, Analítica, INT-03) para validar un comercio: necesitan distinguir "no existe" (404) de "existe pero está inactivo" (200 con `estado`). El catálogo sigue ocultando los inactivos (RN-05). |
+| DM-19 | Los orígenes de CORS se configuran con `app.cors.allowed-origins` (variable `CORS_ALLOWED_ORIGINS`), separados por coma. | Cada entorno tiene su propia URL de front; así no hay que recompilar para cambiarla. |
+| DM-20 | El nombre de una categoría es único sin distinguir mayúsculas ni espacios exteriores: crear o modificar con un nombre que ya existe responde 409 (`RecursoDuplicadoException`). Al modificar no cuenta la propia categoría. El nombre se guarda sin espacios exteriores. | Dos categorías "Bebidas" y "bebidas " confunden el filtro del catálogo (CU-05) y la elección de categorías al publicar (RN-03). Es un conflicto con el estado actual, igual que el CUIT duplicado (RN-01). Guardar el nombre recortado hace que la comparación valga también contra lo ya guardado. |
 
 ## Pendiente
 

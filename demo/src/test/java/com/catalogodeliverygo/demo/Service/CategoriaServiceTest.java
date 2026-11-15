@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 import com.catalogodeliverygo.demo.DTOs.CategoriaDTO;
 import com.catalogodeliverygo.demo.DTOs.CategoriaRequestDTO;
 import com.catalogodeliverygo.demo.Exception.CategoriaEnUsoException;
+import com.catalogodeliverygo.demo.Exception.RecursoDuplicadoException;
 import com.catalogodeliverygo.demo.Exception.RecursoNoEncontradoException;
 import com.catalogodeliverygo.demo.Mapper.DtoMapper;
 import com.catalogodeliverygo.demo.Model.Categoria;
@@ -71,6 +72,56 @@ class CategoriaServiceTest {
         CategoriaDTO modificada = categoriaService.modificarCategoria(1L, new CategoriaRequestDTO("Burgers"));
 
         assertEquals("Burgers", modificada.getNombre());
+    }
+
+    // ---- DM-20: nombres duplicados -> 409 ----
+
+    @Test
+    void crearRechazaUnNombreDuplicadoExacto() {
+        when(categoriaRepository.existsByNombreIgnoreCase("Bebidas")).thenReturn(true);
+
+        assertThrows(RecursoDuplicadoException.class,
+                     () -> categoriaService.crearCategoria(new CategoriaRequestDTO("Bebidas")));
+        verify(categoriaRepository, never()).save(any());
+    }
+
+    // Los espacios exteriores se recortan antes de consultar; las mayúsculas las ignora la consulta (IgnoreCase)
+    @Test
+    void crearRechazaUnDuplicadoConOtrasMayusculasYEspacios() {
+        when(categoriaRepository.existsByNombreIgnoreCase("bEBIDAS")).thenReturn(true);
+
+        assertThrows(RecursoDuplicadoException.class,
+                     () -> categoriaService.crearCategoria(new CategoriaRequestDTO("  bEBIDAS  ")));
+        verify(categoriaRepository, never()).save(any());
+    }
+
+    @Test
+    void crearGuardaElNombreSinEspaciosExteriores() {
+        when(categoriaRepository.save(any(Categoria.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        assertEquals("Wraps", categoriaService.crearCategoria(new CategoriaRequestDTO("  Wraps ")).getNombre());
+    }
+
+    @Test
+    void modificarRechazaElNombreDeOtraCategoria() {
+        when(categoriaRepository.findById(1L)).thenReturn(Optional.of(new Categoria("Hamburguesas")));
+        when(categoriaRepository.existsByNombreIgnoreCaseAndIdNot("Bebidas", 1L)).thenReturn(true);
+
+        assertThrows(RecursoDuplicadoException.class,
+                     () -> categoriaService.modificarCategoria(1L, new CategoriaRequestDTO("Bebidas")));
+        verify(categoriaRepository, never()).save(any());
+    }
+
+    // El chequeo excluye la propia categoría: se puede guardar con el mismo nombre o cambiando solo mayúsculas
+    @Test
+    void modificarPermiteConservarElPropioNombre() {
+        when(categoriaRepository.findById(1L)).thenReturn(Optional.of(new Categoria("Hamburguesas")));
+        when(categoriaRepository.existsByNombreIgnoreCaseAndIdNot("HAMBURGUESAS", 1L)).thenReturn(false);
+        when(categoriaRepository.save(any(Categoria.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        CategoriaDTO modificada = categoriaService.modificarCategoria(1L, new CategoriaRequestDTO(" HAMBURGUESAS "));
+
+        assertEquals("HAMBURGUESAS", modificada.getNombre());
     }
 
     @Test

@@ -26,6 +26,11 @@ public class ComercioController implements ComercioApi {
     }
 
     @Override
+    public ResponseEntity<ComercioResponseDTO> obtenerComercio(Long id) {
+        return ResponseEntity.ok(comercioService.obtenerComercio(id));
+    }
+
+    @Override
     public ResponseEntity<ComercioResponseDTO> modificarComercio(Long id, ModificarComercioRequestDTO request) {
         return ResponseEntity.ok(comercioService.modificarComercio(id, request));
     }

@@ -48,6 +48,16 @@ public class ComercioService {
         }
     }
 
+    // API-14 / INT-03: devuelve el comercio sin filtrar por estado. Los otros módulos lo usan para validarlo,
+    // así que un comercio INACTIVO responde 200 con su estado, no 404 como en el catálogo (DM-18)
+    @Transactional(readOnly = true)
+    public ComercioResponseDTO obtenerComercio(Long comercioId) {
+        Comercio comercio = comercioRepository.findById(comercioId)
+            .orElseThrow(() -> new RecursoNoEncontradoException("No existe el comercio con id " + comercioId));
+
+        return mapper.toComercioResponse(comercio);
+    }
+
     // CU-10: busca el comercio y actualiza razón social, dirección y rubro. El CUIT no cambia (RN-01): ni siquiera
     // está en el DTO. La Primera Entrega asocia CU-10 solo a RN-01, por eso no se exige comercio activo
     public ComercioResponseDTO modificarComercio(Long comercioId, ModificarComercioRequestDTO request) {
