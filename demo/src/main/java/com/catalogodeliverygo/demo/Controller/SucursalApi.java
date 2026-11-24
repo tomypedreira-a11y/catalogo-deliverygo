@@ -52,7 +52,7 @@ public interface SucursalApi {
                  content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class)))
     @ApiResponse(responseCode = "401", description = "Falta el token o es inválido (DM-15)",
                  content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class)))
-    @ApiResponse(responseCode = "403", description = "Usuario sin rol COMERCIO o ADMIN (DM-15)",
+    @ApiResponse(responseCode = "403", description = "Usuario sin rol COMERCIO o ADMIN (DM-15), o el comercio es de otro usuario (DM-21)",
                  content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class)))
     @ApiResponse(responseCode = "404", description = "Comercio inexistente",
                  content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class)))
@@ -74,7 +74,7 @@ public interface SucursalApi {
                  content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class)))
     @ApiResponse(responseCode = "401", description = "Falta el token o es inválido (DM-15)",
                  content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class)))
-    @ApiResponse(responseCode = "403", description = "Usuario sin rol COMERCIO o ADMIN (DM-15)",
+    @ApiResponse(responseCode = "403", description = "Usuario sin rol COMERCIO o ADMIN (DM-15), o el comercio es de otro usuario (DM-21)",
                  content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class)))
     @ApiResponse(responseCode = "404", description = "Comercio o sucursal inexistente, o la sucursal no es de ese comercio",
                  content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class)))
@@ -95,7 +95,7 @@ public interface SucursalApi {
     @ApiResponse(responseCode = "204", description = "Sucursal eliminada")
     @ApiResponse(responseCode = "401", description = "Falta el token o es inválido (DM-15)",
                  content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class)))
-    @ApiResponse(responseCode = "403", description = "Usuario sin rol COMERCIO o ADMIN (DM-15)",
+    @ApiResponse(responseCode = "403", description = "Usuario sin rol COMERCIO o ADMIN (DM-15), o el comercio es de otro usuario (DM-21)",
                  content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class)))
     @ApiResponse(responseCode = "404", description = "Comercio o sucursal inexistente, o la sucursal no es de ese comercio",
                  content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class)))

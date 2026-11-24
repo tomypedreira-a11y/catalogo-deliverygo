@@ -12,15 +12,17 @@ INSERT INTO categorias (nombre) VALUES ('Postres');
 INSERT INTO categorias (nombre) VALUES ('Vegano');
 INSERT INTO categorias (nombre) VALUES ('Sin TACC');
 
--- Comercios: tres activos y uno INACTIVO para probar RN-02 y RN-05
-INSERT INTO comercios (cuit, razon_social, direccion, rubro, estado)
-VALUES ('30712345678', 'La Esquina SRL', 'Av. Corrientes 1450, CABA', 'Hamburguesería', 'ACTIVO');
-INSERT INTO comercios (cuit, razon_social, direccion, rubro, estado)
-VALUES ('30712345679', 'Don Pietro SRL', 'Av. Cabildo 2100, CABA', 'Pizzería', 'ACTIVO');
-INSERT INTO comercios (cuit, razon_social, direccion, rubro, estado)
-VALUES ('30712345680', 'Helados del Sur SA', 'Av. Pueyrredón 900, CABA', 'Heladería', 'ACTIVO');
-INSERT INTO comercios (cuit, razon_social, direccion, rubro, estado)
-VALUES ('30712345681', 'Sushi Cerrado SRL', 'Av. Callao 300, CABA', 'Sushi', 'INACTIVO');
+-- Comercios: tres activos y uno INACTIVO para probar RN-02 y RN-05.
+-- usuario_responsable es el "sub" del token del dueño (DM-21): prueba-comercio es dueño de La Esquina y de
+-- Sushi Cerrado; prueba-comercio-2, de Don Pietro y Helados del Sur. Así se prueba que uno no toca lo del otro
+INSERT INTO comercios (cuit, razon_social, direccion, rubro, estado, usuario_responsable)
+VALUES ('30712345678', 'La Esquina SRL', 'Av. Corrientes 1450, CABA', 'Hamburguesería', 'ACTIVO', 'prueba-comercio');
+INSERT INTO comercios (cuit, razon_social, direccion, rubro, estado, usuario_responsable)
+VALUES ('30712345679', 'Don Pietro SRL', 'Av. Cabildo 2100, CABA', 'Pizzería', 'ACTIVO', 'prueba-comercio-2');
+INSERT INTO comercios (cuit, razon_social, direccion, rubro, estado, usuario_responsable)
+VALUES ('30712345680', 'Helados del Sur SA', 'Av. Pueyrredón 900, CABA', 'Heladería', 'ACTIVO', 'prueba-comercio-2');
+INSERT INTO comercios (cuit, razon_social, direccion, rubro, estado, usuario_responsable)
+VALUES ('30712345681', 'Sushi Cerrado SRL', 'Av. Callao 300, CABA', 'Sushi', 'INACTIVO', 'prueba-comercio');
 
 -- Sucursales (REL-01)
 INSERT INTO sucursales (direccion, comercio_id)

@@ -5,7 +5,10 @@ import com.catalogodeliverygo.demo.DTOs.CambiarEstadoProductoRequestDTO;
 import com.catalogodeliverygo.demo.DTOs.CrearProductoRequestDTO;
 import com.catalogodeliverygo.demo.DTOs.ModificarPrecioRequestDTO;
 import com.catalogodeliverygo.demo.DTOs.ProductoResponseDTO;
+import com.catalogodeliverygo.demo.DTOs.VerificacionDisponibilidadResponseDTO;
 import com.catalogodeliverygo.demo.Service.ProductoService;
+
+import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -35,6 +38,11 @@ public class ProductoController implements ProductoApi {
     @Override
     public ResponseEntity<ProductoResponseDTO> cambiarDisponibilidad(Long id, CambiarDisponibilidadRequestDTO request) {
         return ResponseEntity.ok(productoService.cambiarDisponibilidad(id, request.getDisponible()));
+    }
+
+    @Override
+    public ResponseEntity<VerificacionDisponibilidadResponseDTO> verificarDisponibilidad(List<Long> ids) {
+        return ResponseEntity.ok(productoService.verificarDisponibilidad(ids));
     }
 
     @Override

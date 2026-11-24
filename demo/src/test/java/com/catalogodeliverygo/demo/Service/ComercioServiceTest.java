@@ -3,6 +3,7 @@ package com.catalogodeliverygo.demo.Service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -10,17 +11,22 @@ import static org.mockito.Mockito.when;
 import com.catalogodeliverygo.demo.DTOs.ComercioResponseDTO;
 import com.catalogodeliverygo.demo.DTOs.CrearComercioRequestDTO;
 import com.catalogodeliverygo.demo.DTOs.ModificarComercioRequestDTO;
+import com.catalogodeliverygo.demo.Exception.AccesoNoAutorizadoException;
 import com.catalogodeliverygo.demo.Exception.RecursoDuplicadoException;
 import com.catalogodeliverygo.demo.Exception.RecursoNoEncontradoException;
 import com.catalogodeliverygo.demo.Mapper.DtoMapper;
 import com.catalogodeliverygo.demo.Model.Comercio;
 import com.catalogodeliverygo.demo.Repository.ComercioRepository;
+import com.catalogodeliverygo.demo.Secutiry.ControlDeAcceso;
+
+import java.util.List;
 
 import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -32,6 +38,10 @@ class ComercioServiceTest {
     @Mock
     private ComercioRepository comercioRepository;
 
+    // DM-21: sin configurar no hace nada, como si el usuario fuera el dueño
+    @Mock
+    private ControlDeAcceso controlDeAcceso;
+
     private ComercioService comercioService;
 
     private final CrearComercioRequestDTO request =
@@ -39,7 +49,7 @@ class ComercioServiceTest {
 
     @BeforeEach
     void setUp() {
-        comercioService = new ComercioService(comercioRepository, new DtoMapper());
+        comercioService = new ComercioService(comercioRepository, new DtoMapper(), controlDeAcceso);
     }
 
     @Test
@@ -128,5 +138,65 @@ class ComercioServiceTest {
 
         assertThrows(RecursoNoEncontradoException.class, () -> comercioService.modificarComercio(99L,
             new ModificarComercioRequestDTO("X", "Y", "Z")));
+    }
+
+    // ---- DM-21: responsable del comercio ----
+
+    private Comercio guardado() {
+        ArgumentCaptor<Comercio> captor = ArgumentCaptor.forClass(Comercio.class);
+        verify(comercioRepository).saveAndFlush(captor.capture());
+        return captor.getValue();
+    }
+
+    @Test
+    void quienRegistraConRolComercioQuedaComoResponsable() {
+        when(controlDeAcceso.usuarioActual()).thenReturn("prueba-comercio");
+        when(comercioRepository.findByCuit("30799999999")).thenReturn(Optional.empty());
+        when(comercioRepository.saveAndFlush(any(Comercio.class))).thenAnswer(inv -> inv.getArgument(0));
+        // Un COMERCIO no puede registrar a nombre de otro: el campo se ignora
+        request.setUsuarioResponsable("otro-usuario");
+
+        comercioService.registrarComercio(request);
+
+        assertEquals("prueba-comercio", guardado().getUsuarioResponsable());
+    }
+
+    @Test
+    void unAdminPuedeIndicarElResponsable() {
+        when(controlDeAcceso.esAdmin()).thenReturn(true);
+        when(comercioRepository.findByCuit("30799999999")).thenReturn(Optional.empty());
+        when(comercioRepository.saveAndFlush(any(Comercio.class))).thenAnswer(inv -> inv.getArgument(0));
+        request.setUsuarioResponsable("  nuevo-comerciante ");
+
+        comercioService.registrarComercio(request);
+
+        assertEquals("nuevo-comerciante", guardado().getUsuarioResponsable());
+    }
+
+    @Test
+    void modificarRechazaUnComercioDeOtroUsuario() {
+        Comercio ajeno = new Comercio("30712345679", "Don Pietro SRL", "Av. Cabildo 2100", "Pizzería",
+                                      Comercio.ESTADO_ACTIVO, "prueba-comercio-2");
+        when(comercioRepository.findById(2L)).thenReturn(Optional.of(ajeno));
+        doThrow(new AccesoNoAutorizadoException("El comercio 2 no pertenece al usuario autenticado"))
+            .when(controlDeAcceso).verificarPuedeAdministrar(ajeno);
+
+        assertThrows(AccesoNoAutorizadoException.class, () -> comercioService.modificarComercio(2L,
+            new ModificarComercioRequestDTO("Otro nombre", "Otra dirección", "Otro rubro")));
+        verify(comercioRepository, never()).save(any());
+        assertEquals("Don Pietro SRL", ajeno.getRazonSocial());
+    }
+
+    @Test
+    void listaLosComerciosDelUsuario() {
+        when(controlDeAcceso.usuarioActual()).thenReturn("prueba-comercio");
+        when(comercioRepository.findByUsuarioResponsableOrderById("prueba-comercio")).thenReturn(List.of(
+            new Comercio("30712345678", "La Esquina SRL", "Av. Corrientes 1450", "Hamburguesería",
+                         Comercio.ESTADO_ACTIVO, "prueba-comercio")));
+
+        List<ComercioResponseDTO> mios = comercioService.listarMisComercios();
+
+        assertEquals(1, mios.size());
+        assertEquals("30712345678", mios.get(0).getCuit());
     }
 }

@@ -6,6 +6,7 @@ import com.catalogodeliverygo.demo.DTOs.CrearProductoRequestDTO;
 import com.catalogodeliverygo.demo.DTOs.ErrorResponseDTO;
 import com.catalogodeliverygo.demo.DTOs.ModificarPrecioRequestDTO;
 import com.catalogodeliverygo.demo.DTOs.ProductoResponseDTO;
+import com.catalogodeliverygo.demo.DTOs.VerificacionDisponibilidadResponseDTO;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -16,6 +17,8 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 
+import java.util.List;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -23,6 +26,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 // DM-01: las tres operaciones devuelven ProductoResponseDTO
 @Tag(name = "Productos", description = "Alta, consulta, precio, disponibilidad y estado de productos (CU-02, CU-03, CU-04, CU-06, CU-09)")
@@ -42,7 +46,7 @@ public interface ProductoApi {
     @ApiResponse(responseCode = "401", description = "Falta el token o es inválido (DM-15)",
                  content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class)))
     // DM-16: las escrituras de productos exigen ADMIN o COMERCIO
-    @ApiResponse(responseCode = "403", description = "Rol sin permiso para modificar productos (solo ADMIN o COMERCIO)",
+    @ApiResponse(responseCode = "403", description = "Rol sin permiso (solo ADMIN o COMERCIO), o el comercio es de otro usuario (DM-21)",
                  content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class)))
     // DM-09: findByIdAndEstado no distingue comercio inexistente de inactivo
     @ApiResponse(responseCode = "404", description = "Comercio inexistente o inactivo (RN-02)",
@@ -63,7 +67,7 @@ public interface ProductoApi {
     @ApiResponse(responseCode = "401", description = "Falta el token o es inválido (DM-15)",
                  content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class)))
     // DM-16: las escrituras de productos exigen ADMIN o COMERCIO
-    @ApiResponse(responseCode = "403", description = "Rol sin permiso para modificar productos (solo ADMIN o COMERCIO)",
+    @ApiResponse(responseCode = "403", description = "Rol sin permiso (solo ADMIN o COMERCIO), o el producto es de un comercio de otro usuario (DM-21)",
                  content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class)))
     @ApiResponse(responseCode = "404", description = "Producto inexistente",
                  content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class)))
@@ -88,7 +92,7 @@ public interface ProductoApi {
     @ApiResponse(responseCode = "401", description = "Falta el token o es inválido (DM-15)",
                  content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class)))
     // DM-16: las escrituras de productos exigen ADMIN o COMERCIO
-    @ApiResponse(responseCode = "403", description = "Rol sin permiso para modificar productos (solo ADMIN o COMERCIO)",
+    @ApiResponse(responseCode = "403", description = "Rol sin permiso (solo ADMIN o COMERCIO), o el producto es de un comercio de otro usuario (DM-21)",
                  content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class)))
     @ApiResponse(responseCode = "404", description = "Producto inexistente",
                  content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class)))
@@ -98,6 +102,25 @@ public interface ProductoApi {
     ResponseEntity<ProductoResponseDTO> cambiarDisponibilidad(
         @Parameter(description = "Id del producto") @PathVariable Long id,
         @Valid @RequestBody CambiarDisponibilidadRequestDTO request);
+
+    // API-16 / DM-22 / INT-02: la consulta que hace Pedidos al crear y al confirmar un pedido
+    @Operation(
+        summary = "Verificar disponibilidad de productos (para Pedidos)",
+        description = "Devuelve, para cada producto pedido, si se puede pedir ahora y por qué no: NO_DISPONIBLE "
+                    + "(pausado con CU-04), PRODUCTO_INACTIVO (dado de baja con CU-09), COMERCIO_INACTIVO (RN-02) "
+                    + "o INEXISTENTE. También devuelve el precio vigente. A diferencia del detalle (CU-06), un "
+                    + "producto oculto no da 404: aparece con su motivo. Pedidos debe llamarlo al crear el pedido "
+                    + "y otra vez al confirmarlo, y rechazar la operación si todosDisponibles es false. "
+                    + "Endpoint público, sin token."
+    )
+    @ApiResponse(responseCode = "200", description = "Un ítem por producto, en el orden pedido y sin repetidos")
+    @ApiResponse(responseCode = "400", description = "Falta ids, tiene un valor no numérico o pide más de 100 productos",
+                 content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class)))
+    @GetMapping("/disponibilidad")
+    ResponseEntity<VerificacionDisponibilidadResponseDTO> verificarDisponibilidad(
+        @Parameter(description = "Ids de los productos, separados por coma (ids=1,2,6) o repetidos (ids=1&ids=2)",
+                   example = "1,2,6")
+        @RequestParam(name = "ids", required = false) List<Long> ids);
 
     // API-06 / CU-06
     @Operation(
@@ -128,7 +151,7 @@ public interface ProductoApi {
     @ApiResponse(responseCode = "401", description = "Falta el token o es inválido (DM-15)",
                  content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class)))
     // DM-16: las escrituras de productos exigen ADMIN o COMERCIO
-    @ApiResponse(responseCode = "403", description = "Rol sin permiso para modificar productos (solo ADMIN o COMERCIO)",
+    @ApiResponse(responseCode = "403", description = "Rol sin permiso (solo ADMIN o COMERCIO), o el producto es de un comercio de otro usuario (DM-21)",
                  content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class)))
     @ApiResponse(responseCode = "404", description = "Producto inexistente",
                  content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class)))

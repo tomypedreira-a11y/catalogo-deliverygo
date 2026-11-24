@@ -39,6 +39,10 @@ public class SecurityConfig {
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**", "/v3/api-docs.yaml", "/h2-console/**", "/error").permitAll()
+                        // Health check del ecosistema: público, sin token; va antes de las reglas generales
+                        .requestMatchers(HttpMethod.GET, "/api/v1/status").permitAll()
+                        // API-15 / DM-21: "mis comercios" depende del usuario del token; va antes del GET público
+                        .requestMatchers(HttpMethod.GET, "/api/v1/comercios/mios").hasAnyRole("ADMIN", "COMERCIO")
                         .requestMatchers(HttpMethod.GET, "/api/v1/comercios/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/catalogo/**", "/api/v1/productos/**").permitAll()
                         // DM-16: CU-02, CU-03, CU-04 y CU-09 escriben productos; solo ADMIN o COMERCIO.
@@ -70,7 +74,8 @@ public class SecurityConfig {
         c.setAllowedOrigins(origenesPermitidos);
         // PATCH lo usan API-03, API-04 y API-12; sin él el navegador bloquea esas llamadas del front
         c.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        c.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+        // X-Modulo: con él el Portal se identifica en el registro de consultas (DM-23)
+        c.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Modulo"));
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", c);
         return source;

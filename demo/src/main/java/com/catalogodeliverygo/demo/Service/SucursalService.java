@@ -9,6 +9,7 @@ import com.catalogodeliverygo.demo.Model.Comercio;
 import com.catalogodeliverygo.demo.Model.Sucursal;
 import com.catalogodeliverygo.demo.Repository.ComercioRepository;
 import com.catalogodeliverygo.demo.Repository.SucursalRepository;
+import com.catalogodeliverygo.demo.Secutiry.ControlDeAcceso;
 
 import java.util.List;
 
@@ -22,12 +23,14 @@ public class SucursalService {
     private final SucursalRepository sucursalRepository;
     private final ComercioRepository comercioRepository;
     private final DtoMapper mapper;
+    private final ControlDeAcceso controlDeAcceso;
 
     public SucursalService(SucursalRepository sucursalRepository, ComercioRepository comercioRepository,
-                           DtoMapper mapper) {
+                           DtoMapper mapper, ControlDeAcceso controlDeAcceso) {
         this.sucursalRepository = sucursalRepository;
         this.comercioRepository = comercioRepository;
         this.mapper = mapper;
+        this.controlDeAcceso = controlDeAcceso;
     }
 
     // CU-07: lista las sucursales del comercio (REL-01). Es una lectura pública: no exige comercio activo
@@ -65,9 +68,11 @@ public class SucursalService {
             .orElseThrow(() -> new RecursoNoEncontradoException("No existe el comercio con id " + comercioId));
     }
 
-    // RN-02: comercio inexistente -> 404; existente pero inactivo -> 409
+    // Escrituras de CU-07. Comercio inexistente -> 404; de otro usuario -> 403 (DM-21);
+    // existente pero inactivo -> 409 (RN-02)
     private Comercio buscarComercioActivo(Long comercioId) {
         Comercio comercio = buscarComercio(comercioId);
+        controlDeAcceso.verificarPuedeAdministrar(comercio);
         if (!Comercio.ESTADO_ACTIVO.equals(comercio.getEstado())) {
             throw new ComercioInactivoException("El comercio " + comercioId + " está inactivo");
         }

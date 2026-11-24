@@ -33,6 +33,11 @@ public class Comercio {
     @Column(nullable=false)
     private String estado;
 
+    // DM-21: "sub" del token del usuario dueño del comercio. Solo él (o un ADMIN) puede modificar el comercio,
+    // sus productos y sus sucursales. Puede ser null si lo dio de alta un ADMIN sin indicar responsable
+    @Column(name = "usuario_responsable")
+    private String usuarioResponsable;
+
     @OneToMany(mappedBy = "comercio", fetch = FetchType.LAZY)
     private List<Sucursal> sucursales = new ArrayList<>();
 
@@ -50,6 +55,11 @@ public class Comercio {
         this.estado = estado;
     }
 
+    public Comercio(String cuit, String razonSocial, String direccion, String rubro, String estado,
+                    String usuarioResponsable) {
+        this(cuit, razonSocial, direccion, rubro, estado);
+        this.usuarioResponsable = usuarioResponsable;
+    }
 
     public Long getId() {
         return id;
@@ -75,6 +85,10 @@ public class Comercio {
         return estado;
     }
 
+    public String getUsuarioResponsable() {
+        return usuarioResponsable;
+    }
+
     public List<Sucursal> getSucursales() {
         return sucursales;
     }
@@ -97,5 +111,9 @@ public class Comercio {
 
     public void setEstado(String estado) {
         this.estado = estado;
+    }
+
+    public void setUsuarioResponsable(String usuarioResponsable) {
+        this.usuarioResponsable = usuarioResponsable;
     }
 }

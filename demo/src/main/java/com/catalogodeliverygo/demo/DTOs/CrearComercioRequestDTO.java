@@ -18,6 +18,10 @@ public class CrearComercioRequestDTO {
     @NotBlank(message = "El rubro es obligatorio")
     private String rubro;
 
+    // DM-21: opcional y solo lo tiene en cuenta un ADMIN, para dar de alta un comercio a nombre de otro usuario.
+    // Si registra un COMERCIO, el responsable es siempre él mismo (el "sub" de su token) y este campo se ignora
+    private String usuarioResponsable;
+
     public CrearComercioRequestDTO(String cuit, String razonSocial, String direccion, String rubro) {
         this.cuit = cuit;
         this.razonSocial = razonSocial;
@@ -26,6 +30,14 @@ public class CrearComercioRequestDTO {
     }
 
     public CrearComercioRequestDTO() {
+    }
+
+    public String getUsuarioResponsable() {
+        return usuarioResponsable;
+    }
+
+    public void setUsuarioResponsable(String usuarioResponsable) {
+        this.usuarioResponsable = usuarioResponsable;
     }
 
     public String getRubro() {

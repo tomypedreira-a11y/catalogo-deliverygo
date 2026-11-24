@@ -39,9 +39,12 @@ class SeguridadProductosTest {
     @Value("${app.jwt.secret}")
     private String secreto;
 
+    // El COMERCIO es prueba-comercio, responsable de La Esquina (comercio 1) en data.sql (DM-21). Los casos de
+    // comercio ajeno están en PropiedadDelComercioTest
     private String token(String rol) {
+        String usuario = "COMERCIO".equals(rol) ? "prueba-comercio" : "usuario-" + rol.toLowerCase();
         return Jwts.builder()
-                   .subject("usuario-" + rol.toLowerCase())
+                   .subject(usuario)
                    .claim("role", rol)
                    .signWith(Keys.hmacShaKeyFor(secreto.getBytes(StandardCharsets.UTF_8)))
                    .compact();

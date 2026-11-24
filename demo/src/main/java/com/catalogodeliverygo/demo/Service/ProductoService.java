@@ -1,7 +1,9 @@
 package com.catalogodeliverygo.demo.Service;
 
 import com.catalogodeliverygo.demo.DTOs.CrearProductoRequestDTO;
+import com.catalogodeliverygo.demo.DTOs.DisponibilidadProductoDTO;
 import com.catalogodeliverygo.demo.DTOs.ProductoResponseDTO;
+import com.catalogodeliverygo.demo.DTOs.VerificacionDisponibilidadResponseDTO;
 import com.catalogodeliverygo.demo.Exception.ComercioInactivoException;
 import com.catalogodeliverygo.demo.Exception.RecursoNoEncontradoException;
 import com.catalogodeliverygo.demo.Exception.ReglaDeNegocioException;
@@ -12,11 +14,15 @@ import com.catalogodeliverygo.demo.Model.Producto;
 import com.catalogodeliverygo.demo.Repository.CategoriaRepository;
 import com.catalogodeliverygo.demo.Repository.ComercioRepository;
 import com.catalogodeliverygo.demo.Repository.ProductoRepository;
+import com.catalogodeliverygo.demo.Secutiry.ControlDeAcceso;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
@@ -26,27 +32,34 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 public class ProductoService {
 
+    // DM-22: tope de productos por verificación, el mismo que el tamaño máximo de página del catálogo (DM-07)
+    static final int MAXIMO_PRODUCTOS_A_VERIFICAR = 100;
+
     private final ProductoRepository productoRepository;
     private final ComercioRepository comercioRepository;
     private final CategoriaRepository categoriaRepository;
     private final DtoMapper mapper;
+    private final ControlDeAcceso controlDeAcceso;
 
     public ProductoService(ProductoRepository productoRepository, ComercioRepository comercioRepository,
-                           CategoriaRepository categoriaRepository, DtoMapper mapper) {
+                           CategoriaRepository categoriaRepository, DtoMapper mapper,
+                           ControlDeAcceso controlDeAcceso) {
         this.productoRepository = productoRepository;
         this.comercioRepository = comercioRepository;
         this.categoriaRepository = categoriaRepository;
         this.mapper = mapper;
+        this.controlDeAcceso = controlDeAcceso;
     }
 
     // SRV-02 / CU-02: valida comercio activo (RN-02, REP-02), categorías existentes (RN-03, REP-06) y persiste
     // con estado ACTIVO y disponible = true (REP-05). Datos obligatorios, precio > 0 y al menos una categoría
-    // (RN-06, RN-04, RN-03) ya los valida Bean Validation en el DTO
+    // (RN-06, RN-04, RN-03) ya los valida Bean Validation en el DTO. Solo se publica en un comercio propio (DM-21)
     public ProductoResponseDTO publicarProducto(CrearProductoRequestDTO request) {
         // DM-09: findByIdAndEstado no distingue inexistente de inactivo, por eso ambos casos son 404
         Comercio comercio = comercioRepository.findByIdAndEstado(request.getComercioId(), Comercio.ESTADO_ACTIVO)
             .orElseThrow(() -> new RecursoNoEncontradoException(
                 "No existe un comercio activo con id " + request.getComercioId()));
+        controlDeAcceso.verificarPuedeAdministrar(comercio);
 
         List<Categoria> categorias = buscarCategorias(request.getCategoriaIds());
 
@@ -99,12 +112,63 @@ public class ProductoService {
         return mapper.toProductoResponse(productoRepository.save(producto));
     }
 
-    // Paso común de CU-03, CU-04 y CU-09: el producto tiene que existir (REP-03, 404) y su comercio estar
-    // activo (REP-02, RN-02). Como el producto existe, su comercio también: si no está activo es un
-    // conflicto de estado, 409 (DM-09)
+    // API-16 / DM-22 / INT-02: Pedidos verifica los productos de un pedido al crearlo y otra vez al confirmarlo.
+    // A diferencia de CU-06, no responde 404 por un producto oculto: devuelve cada producto con su motivo,
+    // para que Pedidos pueda explicarle al cliente qué producto dejó de estar disponible y por qué
+    @Transactional(readOnly = true)
+    public VerificacionDisponibilidadResponseDTO verificarDisponibilidad(List<Long> productoIds) {
+        if (productoIds == null || productoIds.isEmpty()) {
+            throw new ReglaDeNegocioException("ids es obligatorio: indicar al menos un producto");
+        }
+        if (productoIds.stream().anyMatch(id -> id == null)) {
+            throw new ReglaDeNegocioException("ids no puede tener valores vacíos");
+        }
+        // Sin repetidos y en el orden pedido
+        List<Long> pedidos = new ArrayList<>(new LinkedHashSet<>(productoIds));
+        if (pedidos.size() > MAXIMO_PRODUCTOS_A_VERIFICAR) {
+            throw new ReglaDeNegocioException("Se pueden verificar hasta " + MAXIMO_PRODUCTOS_A_VERIFICAR
+                                              + " productos por consulta");
+        }
+
+        Map<Long, Producto> encontrados = productoRepository.findAllById(pedidos).stream()
+            .collect(Collectors.toMap(Producto::getId, Function.identity()));
+
+        List<DisponibilidadProductoDTO> resultado = pedidos.stream()
+            .map(id -> disponibilidadDe(id, encontrados.get(id)))
+            .toList();
+
+        boolean todos = resultado.stream().allMatch(DisponibilidadProductoDTO::isDisponible);
+        return new VerificacionDisponibilidadResponseDTO(todos, resultado);
+    }
+
+    // Mismo criterio que RN-05 (catálogo y CU-06), pero informando cuál condición falla
+    private DisponibilidadProductoDTO disponibilidadDe(Long id, Producto producto) {
+        if (producto == null) {
+            return new DisponibilidadProductoDTO(id, null, null, null, false,
+                                                 DisponibilidadProductoDTO.MOTIVO_INEXISTENTE);
+        }
+        String motivo;
+        if (!Comercio.ESTADO_ACTIVO.equals(producto.getComercio().getEstado())) {
+            motivo = DisponibilidadProductoDTO.MOTIVO_COMERCIO_INACTIVO;
+        } else if (!Producto.ESTADO_ACTIVO.equals(producto.getEstado())) {
+            motivo = DisponibilidadProductoDTO.MOTIVO_PRODUCTO_INACTIVO;
+        } else if (!producto.isDisponible()) {
+            motivo = DisponibilidadProductoDTO.MOTIVO_NO_DISPONIBLE;
+        } else {
+            motivo = DisponibilidadProductoDTO.MOTIVO_DISPONIBLE;
+        }
+        return new DisponibilidadProductoDTO(id, producto.getNombre(), producto.getPrecio(),
+                                             producto.getComercio().getId(),
+                                             DisponibilidadProductoDTO.MOTIVO_DISPONIBLE.equals(motivo), motivo);
+    }
+
+    // Paso común de CU-03, CU-04 y CU-09: el producto tiene que existir (REP-03, 404), ser de un comercio del
+    // usuario (DM-21, 403) y su comercio estar activo (REP-02, RN-02). Como el producto existe, su comercio
+    // también: si no está activo es un conflicto de estado, 409 (DM-09)
     private Producto buscarProductoDeComercioActivo(Long productoId) {
         Producto producto = productoRepository.findById(productoId)
             .orElseThrow(() -> new RecursoNoEncontradoException("No existe el producto con id " + productoId));
+        controlDeAcceso.verificarPuedeAdministrar(producto.getComercio());
 
         Long comercioId = producto.getComercio().getId();
         if (comercioRepository.findByIdAndEstado(comercioId, Comercio.ESTADO_ACTIVO).isEmpty()) {
