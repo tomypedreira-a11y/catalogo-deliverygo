@@ -6,7 +6,7 @@ info:
   title: DeliveryGo - Módulo Comercios y Catálogo
   version: v1
 servers:
-- description: Entorno local
+- description: Servidor del catálogo
   url: http://localhost:8082
 tags:
 - description: "Búsqueda pública del catálogo (CU-05), consumida por Portal Web y\
@@ -269,10 +269,13 @@ paths:
       - Categorías
   /api/v1/comercios:
     post:
-      description: Da de alta un comercio validando que el CUIT no esté registrado
-        (RN-01) y que no falten datos obligatorios (RN-06). Requiere el token JWT
-        emitido por el módulo Usuarios (INT-01) con rol COMERCIO o ADMIN. El comercio
-        se crea con estado ACTIVO.
+      description: "Da de alta un comercio validando que el CUIT no esté registrado\
+        \ (RN-01) y que no falten datos obligatorios (RN-06). Requiere el token JWT\
+        \ emitido por el módulo Usuarios (INT-01) con rol COMERCIO o ADMIN. El comercio\
+        \ se crea con estado ACTIVO. Si lo registra un COMERCIO, queda como su responsable\
+        \ (el sub del token) y es el único, junto con ADMIN, que puede modificarlo,\
+        \ publicar productos y administrar sus sucursales (DM-21). Un ADMIN puede\
+        \ indicar el responsable en usuarioResponsable."
       operationId: registrarComercio
       requestBody:
         content:
@@ -314,6 +317,38 @@ paths:
       security:
       - bearerAuth: []
       summary: Registrar comercio
+      tags:
+      - Comercios
+  /api/v1/comercios/mios:
+    get:
+      description: "Devuelve los comercios cuyo responsable es el usuario del token\
+        \ (claim sub), activos o inactivos, ordenados por id. Si no tiene ninguno,\
+        \ la lista vacía."
+      operationId: listarMisComercios
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ComercioResponseDTO"
+          description: Comercios del usuario autenticado
+        "401":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDTO"
+          description: Falta el token o es inválido (DM-15)
+        "403":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDTO"
+          description: Usuario sin rol COMERCIO o ADMIN (DM-15)
+      security:
+      - bearerAuth: []
+      summary: Listar mis comercios
       tags:
       - Comercios
   /api/v1/comercios/{comercioId}/sucursales:
@@ -389,7 +424,8 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/ErrorResponseDTO"
-          description: Usuario sin rol COMERCIO o ADMIN (DM-15)
+          description: "Usuario sin rol COMERCIO o ADMIN (DM-15), o el comercio es\
+            \ de otro usuario (DM-21)"
         "404":
           content:
             '*/*':
@@ -441,7 +477,8 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/ErrorResponseDTO"
-          description: Usuario sin rol COMERCIO o ADMIN (DM-15)
+          description: "Usuario sin rol COMERCIO o ADMIN (DM-15), o el comercio es\
+            \ de otro usuario (DM-21)"
         "404":
           content:
             '*/*':
@@ -509,7 +546,8 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/ErrorResponseDTO"
-          description: Usuario sin rol COMERCIO o ADMIN (DM-15)
+          description: "Usuario sin rol COMERCIO o ADMIN (DM-15), o el comercio es\
+            \ de otro usuario (DM-21)"
         "404":
           content:
             '*/*':
@@ -560,7 +598,8 @@ paths:
       - Comercios
     put:
       description: "Edita razón social, dirección o rubro de un comercio. El CUIT\
-        \ no se puede modificar (RN-01), por eso no forma parte del cuerpo."
+        \ no se puede modificar (RN-01), por eso no forma parte del cuerpo. Solo lo\
+        \ puede modificar su responsable o un ADMIN (DM-21)."
       operationId: modificarComercio
       parameters:
       - description: Id del comercio
@@ -600,7 +639,8 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/ErrorResponseDTO"
-          description: Usuario sin rol COMERCIO o ADMIN (DM-15)
+          description: "Usuario sin rol COMERCIO o ADMIN (DM-15), o el comercio es\
+            \ de otro usuario (DM-21)"
         "404":
           content:
             '*/*':
@@ -649,7 +689,8 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/ErrorResponseDTO"
-          description: Rol sin permiso para modificar productos (solo ADMIN o COMERCIO)
+          description: "Rol sin permiso (solo ADMIN o COMERCIO), o el comercio es\
+            \ de otro usuario (DM-21)"
         "404":
           content:
             '*/*':
@@ -659,6 +700,44 @@ paths:
       security:
       - bearerAuth: []
       summary: Publicar producto
+      tags:
+      - Productos
+  /api/v1/productos/disponibilidad:
+    get:
+      description: "Devuelve, para cada producto pedido, si se puede pedir ahora y\
+        \ por qué no: NO_DISPONIBLE (pausado con CU-04), PRODUCTO_INACTIVO (dado de\
+        \ baja con CU-09), COMERCIO_INACTIVO (RN-02) o INEXISTENTE. También devuelve\
+        \ el precio vigente. A diferencia del detalle (CU-06), un producto oculto\
+        \ no da 404: aparece con su motivo. Pedidos debe llamarlo al crear el pedido\
+        \ y otra vez al confirmarlo, y rechazar la operación si todosDisponibles es\
+        \ false. Endpoint público, sin token."
+      operationId: verificarDisponibilidad
+      parameters:
+      - description: "Ids de los productos, separados por coma (ids=1,2,6) o repetidos\
+          \ (ids=1&ids=2)"
+        example: "1,2,6"
+        in: query
+        name: ids
+        required: false
+        schema:
+          type: array
+          items:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/VerificacionDisponibilidadResponseDTO"
+          description: "Un ítem por producto, en el orden pedido y sin repetidos"
+        "400":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDTO"
+          description: "Falta ids, tiene un valor no numérico o pide más de 100 productos"
+      summary: Verificar disponibilidad de productos (para Pedidos)
       tags:
       - Productos
   /api/v1/productos/{id}:
@@ -742,7 +821,8 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/ErrorResponseDTO"
-          description: Rol sin permiso para modificar productos (solo ADMIN o COMERCIO)
+          description: "Rol sin permiso (solo ADMIN o COMERCIO), o el producto es\
+            \ de un comercio de otro usuario (DM-21)"
         "404":
           content:
             '*/*':
@@ -805,7 +885,8 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/ErrorResponseDTO"
-          description: Rol sin permiso para modificar productos (solo ADMIN o COMERCIO)
+          description: "Rol sin permiso (solo ADMIN o COMERCIO), o el producto es\
+            \ de un comercio de otro usuario (DM-21)"
         "404":
           content:
             '*/*':
@@ -866,7 +947,8 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/ErrorResponseDTO"
-          description: Rol sin permiso para modificar productos (solo ADMIN o COMERCIO)
+          description: "Rol sin permiso (solo ADMIN o COMERCIO), o el producto es\
+            \ de un comercio de otro usuario (DM-21)"
         "404":
           content:
             '*/*':
@@ -960,6 +1042,8 @@ components:
         rubro:
           type: string
           minLength: 1
+        usuarioResponsable:
+          type: string
       required:
       - cuit
       - direccion
@@ -991,6 +1075,42 @@ components:
       - descripcion
       - nombre
       - precio
+    DisponibilidadProductoDTO:
+      type: object
+      properties:
+        comercioId:
+          type: integer
+          format: int64
+          description: Comercio del producto; null si el producto no existe
+          example: 1
+        disponible:
+          type: boolean
+          description: true solo si el producto se puede pedir ahora (motivo DISPONIBLE)
+          example: true
+        motivo:
+          type: string
+          description: Por qué se puede o no se puede pedir
+          enum:
+          - DISPONIBLE
+          - NO_DISPONIBLE
+          - PRODUCTO_INACTIVO
+          - COMERCIO_INACTIVO
+          - INEXISTENTE
+          example: DISPONIBLE
+        nombre:
+          type: string
+          description: Nombre vigente; null si el producto no existe
+          example: Hamburguesa clásica
+        precio:
+          type: number
+          description: "Precio vigente; null si el producto no existe. Pedidos debe\
+            \ usar este precio, no el que tenía guardado"
+          example: 8500.0
+        productoId:
+          type: integer
+          format: int64
+          description: Id del producto consultado
+          example: 1
     ErrorResponseDTO:
       type: object
       properties:
@@ -1069,6 +1189,18 @@ components:
           minLength: 1
       required:
       - direccion
+    VerificacionDisponibilidadResponseDTO:
+      type: object
+      properties:
+        productos:
+          type: array
+          items:
+            $ref: "#/components/schemas/DisponibilidadProductoDTO"
+        todosDisponibles:
+          type: boolean
+          description: "true si todos los productos se pueden pedir. Si es false,\
+            \ Pedidos no debe crear ni confirmar el pedido"
+          example: true
   securitySchemes:
     bearerAuth:
       description: Token emitido por el módulo Usuarios al autenticarse el comerciante

@@ -6,12 +6,16 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.catalogodeliverygo.demo.DTOs.CrearProductoRequestDTO;
+import com.catalogodeliverygo.demo.DTOs.DisponibilidadProductoDTO;
 import com.catalogodeliverygo.demo.DTOs.ProductoResponseDTO;
+import com.catalogodeliverygo.demo.DTOs.VerificacionDisponibilidadResponseDTO;
+import com.catalogodeliverygo.demo.Exception.AccesoNoAutorizadoException;
 import com.catalogodeliverygo.demo.Exception.ComercioInactivoException;
 import com.catalogodeliverygo.demo.Exception.RecursoNoEncontradoException;
 import com.catalogodeliverygo.demo.Exception.ReglaDeNegocioException;
@@ -22,6 +26,7 @@ import com.catalogodeliverygo.demo.Model.Producto;
 import com.catalogodeliverygo.demo.Repository.CategoriaRepository;
 import com.catalogodeliverygo.demo.Repository.ComercioRepository;
 import com.catalogodeliverygo.demo.Repository.ProductoRepository;
+import com.catalogodeliverygo.demo.Secutiry.ControlDeAcceso;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -34,6 +39,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 // Un test por flujo de cada caso de uso de ProductoService
 @ExtendWith(MockitoExtension.class)
@@ -48,6 +54,10 @@ class ProductoServiceTest {
     @Mock
     private CategoriaRepository categoriaRepository;
 
+    // DM-21: sin configurar no hace nada, como si el usuario fuera el dueño. Los tests de comercio ajeno lo hacen fallar
+    @Mock
+    private ControlDeAcceso controlDeAcceso;
+
     private ProductoService productoService;
 
     private final Comercio comercioActivo =
@@ -56,7 +66,7 @@ class ProductoServiceTest {
     @BeforeEach
     void setUp() {
         productoService = new ProductoService(productoRepository, comercioRepository, categoriaRepository,
-                                              new DtoMapper());
+                                              new DtoMapper(), controlDeAcceso);
     }
 
     private CrearProductoRequestDTO pedido(List<Long> categoriaIds) {
@@ -273,5 +283,119 @@ class ProductoServiceTest {
 
         assertThrows(ComercioInactivoException.class, () -> productoService.cambiarEstado(10L, false));
         verify(productoRepository, never()).save(any());
+    }
+
+    // ---- DM-21: un comercio solo modifica lo suyo ----
+
+    private void elUsuarioNoEsElDuenio() {
+        doThrow(new AccesoNoAutorizadoException("El comercio no pertenece al usuario autenticado"))
+            .when(controlDeAcceso).verificarPuedeAdministrar(any());
+    }
+
+    @Test
+    void publicarRechazaUnComercioDeOtroUsuario() {
+        when(comercioRepository.findByIdAndEstado(1L, Comercio.ESTADO_ACTIVO)).thenReturn(Optional.of(comercioActivo));
+        elUsuarioNoEsElDuenio();
+
+        assertThrows(AccesoNoAutorizadoException.class, () -> productoService.publicarProducto(pedido(List.of(1L))));
+        verify(productoRepository, never()).save(any());
+    }
+
+    @Test
+    void modificarPrecioRechazaUnProductoDeOtroComercio() {
+        when(productoRepository.findById(10L)).thenReturn(Optional.of(productoDe(comercioActivo)));
+        elUsuarioNoEsElDuenio();
+
+        assertThrows(AccesoNoAutorizadoException.class,
+                     () -> productoService.modificarPrecio(10L, new BigDecimal("1.00")));
+        verify(productoRepository, never()).save(any());
+    }
+
+    @Test
+    void cambiarDisponibilidadRechazaUnProductoDeOtroComercio() {
+        when(productoRepository.findById(10L)).thenReturn(Optional.of(productoDe(comercioActivo)));
+        elUsuarioNoEsElDuenio();
+
+        assertThrows(AccesoNoAutorizadoException.class, () -> productoService.cambiarDisponibilidad(10L, false));
+        verify(productoRepository, never()).save(any());
+    }
+
+    @Test
+    void cambiarEstadoRechazaUnProductoDeOtroComercio() {
+        when(productoRepository.findById(10L)).thenReturn(Optional.of(productoDe(comercioActivo)));
+        elUsuarioNoEsElDuenio();
+
+        assertThrows(AccesoNoAutorizadoException.class, () -> productoService.cambiarEstado(10L, false));
+        verify(productoRepository, never()).save(any());
+    }
+
+    // ---- API-16 / DM-22: verificar disponibilidad para Pedidos ----
+
+    private Producto productoConId(Long id, Comercio comercio, boolean disponible, String estado) {
+        Producto producto = new Producto("Producto " + id, "Descripción", new BigDecimal("1000.00"),
+                                         disponible, estado, comercio, new ArrayList<>());
+        ReflectionTestUtils.setField(producto, "id", id);
+        return producto;
+    }
+
+    @Test
+    void informaElMotivoDeCadaProducto() {
+        Comercio inactivo = new Comercio("30712345681", "Sushi Cerrado SRL", "Av. Callao 300", "Sushi",
+                                         Comercio.ESTADO_INACTIVO);
+        when(productoRepository.findAllById(any())).thenReturn(List.of(
+            productoConId(1L, comercioActivo, true, Producto.ESTADO_ACTIVO),
+            productoConId(6L, comercioActivo, false, Producto.ESTADO_ACTIVO),
+            productoConId(10L, comercioActivo, true, Producto.ESTADO_INACTIVO),
+            productoConId(13L, inactivo, true, Producto.ESTADO_ACTIVO)));
+
+        VerificacionDisponibilidadResponseDTO respuesta =
+            productoService.verificarDisponibilidad(List.of(1L, 6L, 10L, 13L, 999L));
+
+        assertFalse(respuesta.isTodosDisponibles());
+        List<String> motivos = respuesta.getProductos().stream().map(DisponibilidadProductoDTO::getMotivo).toList();
+        assertEquals(List.of(DisponibilidadProductoDTO.MOTIVO_DISPONIBLE,
+                             DisponibilidadProductoDTO.MOTIVO_NO_DISPONIBLE,
+                             DisponibilidadProductoDTO.MOTIVO_PRODUCTO_INACTIVO,
+                             DisponibilidadProductoDTO.MOTIVO_COMERCIO_INACTIVO,
+                             DisponibilidadProductoDTO.MOTIVO_INEXISTENTE), motivos);
+        assertTrue(respuesta.getProductos().get(0).isDisponible());
+        assertFalse(respuesta.getProductos().get(1).isDisponible());
+        assertEquals(new BigDecimal("1000.00"), respuesta.getProductos().get(1).getPrecio());
+        assertEquals(null, respuesta.getProductos().get(4).getNombre());
+    }
+
+    @Test
+    void todosDisponiblesSiNingunoFalla() {
+        when(productoRepository.findAllById(any())).thenReturn(List.of(
+            productoConId(1L, comercioActivo, true, Producto.ESTADO_ACTIVO),
+            productoConId(2L, comercioActivo, true, Producto.ESTADO_ACTIVO)));
+
+        assertTrue(productoService.verificarDisponibilidad(List.of(1L, 2L)).isTodosDisponibles());
+    }
+
+    @Test
+    void verificarIgnoraIdsRepetidosYRespetaElOrden() {
+        when(productoRepository.findAllById(any())).thenReturn(List.of(
+            productoConId(1L, comercioActivo, true, Producto.ESTADO_ACTIVO),
+            productoConId(2L, comercioActivo, true, Producto.ESTADO_ACTIVO)));
+
+        List<Long> ids = productoService.verificarDisponibilidad(List.of(2L, 1L, 2L)).getProductos().stream()
+                                        .map(DisponibilidadProductoDTO::getProductoId).toList();
+
+        assertEquals(List.of(2L, 1L), ids);
+    }
+
+    @Test
+    void verificarExigeAlMenosUnId() {
+        assertThrows(ReglaDeNegocioException.class, () -> productoService.verificarDisponibilidad(null));
+        assertThrows(ReglaDeNegocioException.class, () -> productoService.verificarDisponibilidad(List.of()));
+    }
+
+    @Test
+    void verificarRechazaMasDeCienProductos() {
+        List<Long> ids = java.util.stream.LongStream.rangeClosed(1, 101).boxed().toList();
+
+        assertThrows(ReglaDeNegocioException.class, () -> productoService.verificarDisponibilidad(ids));
+        verify(productoRepository, never()).findAllById(any());
     }
 }

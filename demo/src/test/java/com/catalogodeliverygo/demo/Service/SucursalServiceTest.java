@@ -3,12 +3,14 @@ package com.catalogodeliverygo.demo.Service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.catalogodeliverygo.demo.DTOs.SucursalDTO;
 import com.catalogodeliverygo.demo.DTOs.SucursalRequestDTO;
+import com.catalogodeliverygo.demo.Exception.AccesoNoAutorizadoException;
 import com.catalogodeliverygo.demo.Exception.ComercioInactivoException;
 import com.catalogodeliverygo.demo.Exception.RecursoNoEncontradoException;
 import com.catalogodeliverygo.demo.Mapper.DtoMapper;
@@ -16,6 +18,7 @@ import com.catalogodeliverygo.demo.Model.Comercio;
 import com.catalogodeliverygo.demo.Model.Sucursal;
 import com.catalogodeliverygo.demo.Repository.ComercioRepository;
 import com.catalogodeliverygo.demo.Repository.SucursalRepository;
+import com.catalogodeliverygo.demo.Secutiry.ControlDeAcceso;
 
 import java.util.List;
 import java.util.Optional;
@@ -37,6 +40,10 @@ class SucursalServiceTest {
     @Mock
     private ComercioRepository comercioRepository;
 
+    // DM-21: sin configurar no hace nada, como si el usuario fuera el dueño
+    @Mock
+    private ControlDeAcceso controlDeAcceso;
+
     private SucursalService sucursalService;
 
     private Comercio activo;
@@ -45,7 +52,7 @@ class SucursalServiceTest {
 
     @BeforeEach
     void setUp() {
-        sucursalService = new SucursalService(sucursalRepository, comercioRepository, new DtoMapper());
+        sucursalService = new SucursalService(sucursalRepository, comercioRepository, new DtoMapper(), controlDeAcceso);
         activo = comercio(1L, Comercio.ESTADO_ACTIVO);
         inactivo = comercio(4L, Comercio.ESTADO_INACTIVO);
         otro = comercio(2L, Comercio.ESTADO_ACTIVO);
@@ -150,6 +157,28 @@ class SucursalServiceTest {
         when(comercioRepository.findById(4L)).thenReturn(Optional.of(inactivo));
 
         assertThrows(ComercioInactivoException.class, () -> sucursalService.eliminarSucursal(4L, 7L));
+        verify(sucursalRepository, never()).delete(any());
+    }
+
+    // ---- DM-21: un comercio solo administra sus propias sucursales ----
+
+    @Test
+    void crearRechazaUnComercioDeOtroUsuario() {
+        when(comercioRepository.findById(2L)).thenReturn(Optional.of(otro));
+        doThrow(new AccesoNoAutorizadoException("El comercio 2 no pertenece al usuario autenticado"))
+            .when(controlDeAcceso).verificarPuedeAdministrar(otro);
+
+        assertThrows(AccesoNoAutorizadoException.class, () -> sucursalService.crearSucursal(2L, pedido));
+        verify(sucursalRepository, never()).save(any());
+    }
+
+    @Test
+    void eliminarRechazaUnComercioDeOtroUsuario() {
+        when(comercioRepository.findById(2L)).thenReturn(Optional.of(otro));
+        doThrow(new AccesoNoAutorizadoException("El comercio 2 no pertenece al usuario autenticado"))
+            .when(controlDeAcceso).verificarPuedeAdministrar(otro);
+
+        assertThrows(AccesoNoAutorizadoException.class, () -> sucursalService.eliminarSucursal(2L, 5L));
         verify(sucursalRepository, never()).delete(any());
     }
 }

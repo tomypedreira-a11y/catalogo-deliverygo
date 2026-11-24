@@ -5,6 +5,8 @@ import com.catalogodeliverygo.demo.DTOs.CrearComercioRequestDTO;
 import com.catalogodeliverygo.demo.DTOs.ModificarComercioRequestDTO;
 import com.catalogodeliverygo.demo.Service.ComercioService;
 
+import java.util.List;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
@@ -23,6 +25,11 @@ public class ComercioController implements ComercioApi {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(comercioService.registrarComercio(request));
+    }
+
+    @Override
+    public ResponseEntity<List<ComercioResponseDTO>> listarMisComercios() {
+        return ResponseEntity.ok(comercioService.listarMisComercios());
     }
 
     @Override

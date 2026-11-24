@@ -14,6 +14,8 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 
+import java.util.List;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -31,7 +33,10 @@ public interface ComercioApi {
         summary = "Registrar comercio",
         description = "Da de alta un comercio validando que el CUIT no esté registrado (RN-01) y que no falten datos "
                     + "obligatorios (RN-06). Requiere el token JWT emitido por el módulo Usuarios (INT-01) con rol "
-                    + "COMERCIO o ADMIN. El comercio se crea con estado ACTIVO.",
+                    + "COMERCIO o ADMIN. El comercio se crea con estado ACTIVO. Si lo registra un COMERCIO, queda "
+                    + "como su responsable (el sub del token) y es el único, junto con ADMIN, que puede modificarlo, "
+                    + "publicar productos y administrar sus sucursales (DM-21). Un ADMIN puede indicar el "
+                    + "responsable en usuarioResponsable.",
         security = @SecurityRequirement(name = "bearerAuth")
     )
     @ApiResponse(responseCode = "201", description = "Comercio creado con estado ACTIVO")
@@ -46,6 +51,21 @@ public interface ComercioApi {
     @PostMapping
     // El token no es parámetro: lo valida SecurityConfig antes de llegar al controlador (DM-06)
     ResponseEntity<ComercioResponseDTO> registrarComercio(@Valid @RequestBody CrearComercioRequestDTO request);
+
+    // API-15 / DM-21: el Portal lo usa para mostrarle al comerciante los comercios que puede administrar
+    @Operation(
+        summary = "Listar mis comercios",
+        description = "Devuelve los comercios cuyo responsable es el usuario del token (claim sub), activos o "
+                    + "inactivos, ordenados por id. Si no tiene ninguno, la lista vacía.",
+        security = @SecurityRequirement(name = "bearerAuth")
+    )
+    @ApiResponse(responseCode = "200", description = "Comercios del usuario autenticado")
+    @ApiResponse(responseCode = "401", description = "Falta el token o es inválido (DM-15)",
+                 content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class)))
+    @ApiResponse(responseCode = "403", description = "Usuario sin rol COMERCIO o ADMIN (DM-15)",
+                 content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class)))
+    @GetMapping("/mios")
+    ResponseEntity<List<ComercioResponseDTO>> listarMisComercios();
 
     // API-14 / INT-03: lo usan otros módulos (Opiniones, Analítica) para validar el comercio
     @Operation(
@@ -65,7 +85,7 @@ public interface ComercioApi {
     @Operation(
         summary = "Modificar información del comercio",
         description = "Edita razón social, dirección o rubro de un comercio. El CUIT no se puede modificar (RN-01), "
-                    + "por eso no forma parte del cuerpo.",
+                    + "por eso no forma parte del cuerpo. Solo lo puede modificar su responsable o un ADMIN (DM-21).",
         security = @SecurityRequirement(name = "bearerAuth")
     )
     @ApiResponse(responseCode = "200", description = "Comercio actualizado")
@@ -73,7 +93,7 @@ public interface ComercioApi {
                  content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class)))
     @ApiResponse(responseCode = "401", description = "Falta el token o es inválido (DM-15)",
                  content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class)))
-    @ApiResponse(responseCode = "403", description = "Usuario sin rol COMERCIO o ADMIN (DM-15)",
+    @ApiResponse(responseCode = "403", description = "Usuario sin rol COMERCIO o ADMIN (DM-15), o el comercio es de otro usuario (DM-21)",
                  content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class)))
     @ApiResponse(responseCode = "404", description = "Comercio inexistente",
                  content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class)))

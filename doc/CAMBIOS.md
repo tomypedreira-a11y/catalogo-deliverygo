@@ -21,7 +21,7 @@ La app escucha en el puerto **8082** por defecto. Tres variables de entorno perm
 
 Por ejemplo: `SERVER_PORT=9090 JWT_SECRET=una-clave-de-al-menos-32-bytes-123 ./mvnw spring-boot:run`.
 
-Para probar los endpoints protegidos hace falta un token JWT. Se carga con el botón **Authorize** de Swagger, y hay dos de prueba en la sección siguiente.
+Para probar los endpoints protegidos hace falta un token JWT. Se carga con el botón **Authorize** de Swagger, y hay tres de prueba en la sección siguiente. El arranque entre máquinas virtuales, la configuración del JWT y ejemplos de consumo para Portal y Pedidos están en el [`README.md`](../README.md).
 
 ## Paso a paso para probar
 
@@ -37,19 +37,23 @@ El módulo Usuarios todavía no existe, así que estos tokens están firmados co
 
 - **ADMIN**:
   `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJwcnVlYmEtYWRtaW4iLCJyb2xlIjoiQURNSU4ifQ.jXvvRRZMakLjcEvXkDGB8wnlzHTW7Y5171IWoIOKuFg`
-- **COMERCIO**:
+- **COMERCIO** (`prueba-comercio`, dueño de La Esquina y Sushi Cerrado):
   `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJwcnVlYmEtY29tZXJjaW8iLCJyb2xlIjoiQ09NRVJDSU8ifQ.qve-eikFzYL1osRC0I9wM53gLvPc56HXWSYB4SmPAMA`
+- **COMERCIO 2** (`prueba-comercio-2`, dueño de Don Pietro y Helados del Sur):
+  `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJwcnVlYmEtY29tZXJjaW8tMiIsInJvbGUiOiJDT01FUkNJTyJ9.Xz1vR2OJT51raJ7FF5y3ssZRjxQqdrjCKcQRoVSvtmE`
+
+Un COMERCIO solo puede modificar sus propios comercios, y los productos y sucursales de esos comercios (DM-21). En la tabla de abajo, "COMERCIO" es el primero salvo que diga "COMERCIO 2".
 
 En Swagger: botón **Authorize** (arriba a la derecha) → pegar el token solo, sin la palabra "Bearer" → Authorize → Close. Para cambiar de rol: Authorize → Logout → pegar el otro.
 
 ### Datos con los que arranca la base
 
-| id | Comercio | Para qué sirve |
-|---|---|---|
-| 1 | La Esquina | Comercio activo con 3 sucursales |
-| 2 | Don Pietro | Comercio activo con 1 sucursal |
-| 3 | Helados del Sur | Comercio activo |
-| 4 | Sushi Cerrado SRL | **INACTIVO**: para probar RN-02 y RN-05 |
+| id | Comercio | Responsable (`sub`) | Para qué sirve |
+|---|---|---|---|
+| 1 | La Esquina | `prueba-comercio` | Comercio activo con 3 sucursales |
+| 2 | Don Pietro | `prueba-comercio-2` | Comercio activo con 1 sucursal |
+| 3 | Helados del Sur | `prueba-comercio-2` | Comercio activo |
+| 4 | Sushi Cerrado SRL | `prueba-comercio` | **INACTIVO**: para probar RN-02 y RN-05 |
 
 Productos útiles: **1** Hamburguesa clásica (normal), **6** Brownie (no disponible), **10** Fainá (INACTIVO), **13** Roll California (de un comercio inactivo).
 
@@ -75,19 +79,24 @@ Seguir el orden de la tabla. Algunos pasos cambian datos que usa el paso siguien
 | 12 | CU-09 | COMERCIO | `PATCH /api/v1/productos/{id}/estado` | id `1`, `{"activo":false}` | 200 `estado: INACTIVO`; `GET /productos/1` ahora da 404 |
 | 13 | CU-07 | ninguno | `GET /api/v1/comercios/{comercioId}/sucursales` | comercioId `1` | 200 con 3 sucursales |
 | 14 | CU-07 | COMERCIO | `POST /api/v1/comercios/{comercioId}/sucursales` | comercioId `4`, `{"direccion":"Calle 1"}` | 409: el comercio está inactivo |
-| 15 | CU-07 | COMERCIO | `DELETE /api/v1/comercios/{comercioId}/sucursales/{id}` | comercioId `2`, id `1` | 404: la sucursal 1 no es de Don Pietro |
+| 15 | CU-07 | COMERCIO 2 | `DELETE /api/v1/comercios/{comercioId}/sucursales/{id}` | comercioId `2`, id `1` | 404: la sucursal 1 no es de Don Pietro. Con el token COMERCIO da 403, porque Don Pietro no es suyo (DM-21) |
 | 16 | CU-08 | COMERCIO | `POST /api/v1/categorias` | `{"nombre":"Wraps"}` | **403**: el rol no alcanza (DM-15) |
 | 17 | CU-08 | ADMIN | `POST /api/v1/categorias` | `{"nombre":"Wraps"}` | 201 |
 | 18 | CU-08 | ADMIN | `DELETE /api/v1/categorias/{id}` | id `1` | 409: tiene productos asociados (DM-13) |
 | 19 | CU-10 | COMERCIO | `PUT /api/v1/comercios/{id}` | id `1`, `{"razonSocial":"La Esquina Burgers","direccion":"Av. Siempre Viva 742","rubro":"Hamburguesería"}` | 200 con la razón social nueva; el CUIT no cambia |
 | 20 | API-14 | ninguno | `GET /api/v1/comercios/{id}` | id `4`; después id `999` | 200 con `estado: INACTIVO` (DM-18); con `999`, 404 |
 | 21 | CU-08 | ADMIN | `POST /api/v1/categorias` | `{"nombre":"  bebidas "}` | 409: ya existe "Bebidas", sin distinguir mayúsculas ni espacios (DM-20) |
+| 22 | DM-21 | COMERCIO 2 | `PATCH /api/v1/productos/{id}/precio` | id `1`, `{"nuevoPrecio":1}` | **403** "El comercio 1 no pertenece al usuario autenticado"; el precio no cambia |
+| 23 | DM-21 | COMERCIO 2 | `PUT /api/v1/comercios/{id}` | id `1`, cualquier cuerpo válido | **403**; con id `2` da 200 |
+| 24 | API-15 | COMERCIO 2 | `GET /api/v1/comercios/mios` | nada | 200 con Don Pietro y Helados del Sur |
+| 25 | API-16 | ninguno | `GET /api/v1/productos/disponibilidad` | ids `1,6,10,13,999` | 200, `todosDisponibles: false`; motivos DISPONIBLE, NO_DISPONIBLE, PRODUCTO_INACTIVO, COMERCIO_INACTIVO e INEXISTENTE |
+| 26 | API-16 | COMERCIO | `PATCH /productos/2/disponibilidad` con `{"disponible":false}`, y repetir el paso 25 con ids `1,2` | | El producto 2 pasa a `NO_DISPONIBLE`: Pedidos no puede confirmar un pedido que lo tenga |
 
 Todos los errores tienen el mismo formato (`ErrorResponseDTO`): `timestamp`, `status`, `error`, `message` y `path`.
 
 ### Sin la app levantada
 
-- `./mvnw test` corre los 90 tests. Tiene que terminar en `BUILD SUCCESS`.
+- `./mvnw test` corre los 130 tests. Tiene que terminar en `BUILD SUCCESS`.
 - `doc/openapi.yaml` se puede pegar en https://editor.swagger.io para ver la documentación sin correr nada.
 
 ## Endpoints
@@ -108,6 +117,8 @@ Todos los errores tienen el mismo formato (`ErrorResponseDTO`): `timestamp`, `st
 | API-12 | `PATCH /api/v1/productos/{id}/estado` | CU-09 Desactivar/reactivar producto | ADMIN o COMERCIO |
 | API-13 | `PUT /api/v1/comercios/{id}` | CU-10 Modificar info. de comercio | ADMIN o COMERCIO |
 | API-14 | `GET /api/v1/comercios/{id}` | Consultar comercio, para otros módulos (INT-03) | No |
+| API-15 | `GET /api/v1/comercios/mios` | Comercios del usuario del token, para el Portal (DM-21) | ADMIN o COMERCIO |
+| API-16 | `GET /api/v1/productos/disponibilidad?ids=1,2` | Verificar disponibilidad y precio vigente, para Pedidos (INT-02, DM-22) | No |
 
 Las escrituras sobre productos exigen ADMIN o COMERCIO (DM-16). Antes alcanzaba con cualquier usuario autenticado, porque caían en la regla general `anyRequest().authenticated()`, que sigue al final de `SecurityConfig` para las rutas sin regla propia.
 
@@ -159,7 +170,7 @@ Las escrituras sobre productos exigen ADMIN o COMERCIO (DM-16). Antes alcanzaba 
 
 El token ya no es parámetro de `registrarComercio`: lo valida `SecurityConfig` antes de llegar al controlador (DM-06).
 
-En total hay **90 tests**: 62 de los Services (unitarios con Mockito, salvo los de CU-05, que son de integración contra H2), 2 de `CategoriaRepositoryTest`, 3 de `DatosDePruebaTest`, `OpenApiYamlTest`, el de arranque de la aplicación, 4 de `JwtServiceTest`, 13 de `SeguridadProductosTest` y 4 de `ComercioControllerTest`. Los dos últimos usan MockMvc y generan sus tokens con jjwt y la misma clave de `app.jwt.secret`.
+En total hay **130 tests**: 77 de los Services (unitarios con Mockito, salvo los de CU-05, que son de integración contra H2), 2 de `CategoriaRepositoryTest`, 3 de `DatosDePruebaTest`, `OpenApiYamlTest`, el de arranque de la aplicación, 4 de `JwtServiceTest`, 6 de `ControlDeAccesoTest`, 13 de `SeguridadProductosTest`, 12 de `PropiedadDelComercioTest`, 4 de `ComercioControllerTest`, 1 de `StatusControllerTest` y 6 de `FlujoPedidoDisponibilidadTest`. Los que usan MockMvc generan sus tokens con jjwt y la misma clave de `app.jwt.secret`.
 
 ## Cambios en la seguridad (`Secutiry/SecurityConfig.java`)
 
@@ -189,6 +200,25 @@ En total hay **90 tests**: 62 de los Services (unitarios con Mockito, salvo los 
 | DM-19 | Los orígenes de CORS se configuran con `app.cors.allowed-origins` (variable `CORS_ALLOWED_ORIGINS`), separados por coma. | Cada entorno tiene su propia URL de front; así no hay que recompilar para cambiarla. |
 | DM-20 | El nombre de una categoría es único sin distinguir mayúsculas ni espacios exteriores: crear o modificar con un nombre que ya existe responde 409 (`RecursoDuplicadoException`). Al modificar no cuenta la propia categoría. El nombre se guarda sin espacios exteriores. | Dos categorías "Bebidas" y "bebidas " confunden el filtro del catálogo (CU-05) y la elección de categorías al publicar (RN-03). Es un conflicto con el estado actual, igual que el CUIT duplicado (RN-01). Guardar el nombre recortado hace que la comparación valga también contra lo ya guardado. |
 
+## Devolución del docente: propiedad, integración y disponibilidad
+
+| Punto | Qué se hizo |
+| --- | --- |
+| **Seguridad**: un comercio solo modifica lo suyo | `Comercio.usuarioResponsable` guarda el `sub` del token de quien lo registró. `Secutiry/ControlDeAcceso` lo compara con el usuario autenticado en todas las escrituras: CU-02, CU-03, CU-04, CU-07 (crear, modificar y borrar), CU-09 y CU-10. Si no coincide, **403**, aunque el rol sea COMERCIO. ADMIN puede todo. Tests: `ControlDeAccesoTest` (6), `PropiedadDelComercioTest` (12, MockMvc con tokens reales) y casos nuevos en los tests de los Services. |
+| **Integración**: Portal y Pedidos consultan el catálogo real | `Config/RegistroDeConsultasFilter` deja en la consola una línea por request, con IP, ruta, status y el módulo que se identifica en `X-Modulo` (DM-23). Swagger usa `OPENAPI_SERVER_URL` para que "Try it out" funcione desde otra máquina virtual (DM-24). `X-Modulo` está habilitado en CORS. Contratos y ejemplos para cada módulo en el [`README.md`](../README.md). |
+| **Disponibilidad** y su impacto en el pedido | API-16 (`GET /api/v1/productos/disponibilidad?ids=...`) dice, para cada producto, si se puede pedir, por qué no y el precio vigente (DM-22). Pedidos lo llama al crear y al confirmar. `Integracion/FlujoPedidoDisponibilidadTest` (6) prueba el flujo: se crea el pedido, el comercio pausa un producto, la confirmación falla y el producto sale del catálogo del Portal; al reactivarlo se puede confirmar otra vez. |
+| **Git**: commit de disponibilidad en una rama lateral | Se revisaron todas las ramas del remoto (`GerGia`, `TotoRizzi`, `TomPedre`, `main`): no hay ningún commit fuera de `TomPedre`. El único commit cuyo mensaje habla de disponibilidad es `cc6dcd0` (lógica de CU-04), y ya está en `TomPedre` y en `main`. `TomPedre` tiene commits que todavía no están en `main` y se integran con un PR. |
+| **Documentación** | `README.md` nuevo: arranque, variables, despliegue entre VMs, JWT (claims, clave, tokens de prueba y cómo generar otros) y ejemplos de consumo. |
+
+### Decisiones nuevas
+
+| ID | Decisión | Motivo |
+| --- | --- | --- |
+| DM-21 | Cada comercio tiene un `usuarioResponsable`: el `sub` del token de quien lo registró con rol COMERCIO, o el que indique un ADMIN en el alta (si no indica ninguno, queda sin responsable y solo lo administra un ADMIN). Las escrituras sobre el comercio, sus productos y sus sucursales exigen ser ese usuario o ADMIN; si no, 403. La propiedad se revisa después de la existencia (404) y antes del estado (409). `GET /api/v1/comercios/mios` (API-15) lista los del usuario. | Tener el rol correcto no debe permitir modificar cualquier comercio. Se usa el `sub` porque Usuarios ya lo emite: no hace falta un claim nuevo ni que Usuarios conozca los ids del catálogo. Se revisa antes del estado para no informarle a un tercero si el comercio ajeno está activo. |
+| DM-22 | `GET /api/v1/productos/disponibilidad?ids=...` (API-16), público, devuelve por producto `disponible`, `motivo` (`DISPONIBLE`, `NO_DISPONIBLE`, `PRODUCTO_INACTIVO`, `COMERCIO_INACTIVO`, `INEXISTENTE`) y el precio vigente, más `todosDisponibles`. Hasta 100 ids. | CU-06 responde 404 por cualquier producto oculto, y Pedidos no puede distinguir "no existe" de "se pausó". Con una sola llamada por pedido valida todos los ítems al crear y al confirmar, y cobra el precio actual. |
+| DM-23 | Un filtro registra cada request a `/api/` (logger `INTEGRACION`) con IP, módulo (`X-Modulo`, saneado), ruta y status. Se apaga con `LOG_CONSULTAS=false`. | Es la evidencia, del lado del catálogo, de que los otros módulos consultan los datos reales y no un mock. |
+| DM-24 | La URL del servidor en OpenAPI sale de `app.openapi.server-url` (`OPENAPI_SERVER_URL`), por defecto `http://localhost:8082`. | Fija, Swagger abierto desde otra VM llamaba al `localhost` de esa VM. El valor por defecto mantiene estable `doc/openapi.yaml`. |
+
 ## Pendiente
 
-Nada de lo planificado para esta rama. Antes de subir algo que cambie un endpoint, correr `./mvnw test` para que `doc/openapi.yaml` quede actualizado.
+Del lado del catálogo, nada. Para cerrar la integración, **Portal y Pedidos tienen que apuntar a la URL real del catálogo** (no a datos de ejemplo), y Pedidos tiene que llamar a API-16 al crear y al confirmar un pedido. Antes de subir algo que cambie un endpoint, correr `./mvnw test` para que `doc/openapi.yaml` quede actualizado.
